@@ -1,0 +1,130 @@
+{
+  "title": "Star Clinic",
+  "premise": "A neurologist discovers memories hidden in tremors.",
+  "genre": "medical sci-fi",
+  "style": "quiet suspense",
+  "story_bible": {
+    "logline": "Star Clinic: A neurologist discovers memories hidden in tremors.",
+    "themes": [
+      "Identity under pressure",
+      "The cost of hidden knowledge",
+      "Choice after revelation"
+    ],
+    "rules": [
+      "Major revelations must be prepared by earlier scene evidence.",
+      "Character choices must follow stated goals and conflicts.",
+      "Each chapter should change at least one relationship or clue state."
+    ],
+    "style_notes": [
+      "Primary style: quiet suspense.",
+      "Genre expectations: medical sci-fi.",
+      "Prefer concrete scene action over abstract explanation."
+    ]
+  },
+  "characters": [
+    {
+      "name": "Lin Che",
+      "role": "protagonist",
+      "goal": "Understand the mystery at the heart of the premise.",
+      "conflict": "His professional habits make emotional truth difficult.",
+      "arc": "From observer to participant."
+    },
+    {
+      "name": "Mira",
+      "role": "catalyst",
+      "goal": "Force the protagonist to confront the first impossible clue.",
+      "conflict": "She knows more than she can safely explain.",
+      "arc": "From guarded messenger to trusted ally."
+    },
+    {
+      "name": "Director Qiao",
+      "role": "antagonistic mentor",
+      "goal": "Keep the official version of events intact.",
+      "conflict": "Protecting order may destroy the truth.",
+      "arc": "From institutional pressure to exposed contradiction."
+    }
+  ],
+  "volume_outline": [
+    {
+      "title": "Volume I: The First Signal",
+      "summary": "The protagonist encounters the premise as a concrete disruption.",
+      "beats": [
+        "Opening anomaly",
+        "First ally",
+        "False explanation"
+      ]
+    },
+    {
+      "title": "Volume II: The Hidden System",
+      "summary": "The cast discovers the deeper structure behind the anomaly.",
+      "beats": [
+        "Rules revealed",
+        "Trust fracture",
+        "Point of no return"
+      ]
+    },
+    {
+      "title": "Volume III: The Cost of Truth",
+      "summary": "The protagonist resolves the central mystery through sacrifice.",
+      "beats": [
+        "Final reversal",
+        "Choice under pressure",
+        "New equilibrium"
+      ]
+    }
+  ],
+  "chapter_outlines": [
+    {
+      "title": "Chapter 1: The Impossible Note",
+      "summary": "Lin Che records a detail that should not exist.",
+      "beats": [
+        "Ordinary world",
+        "Anomalous clue",
+        "Private doubt"
+      ]
+    },
+    {
+      "title": "Chapter 2: Mira's Warning",
+      "summary": "Mira challenges the safe explanation.",
+      "beats": [
+        "Second witness",
+        "Contradictory memory",
+        "A rule emerges"
+      ]
+    },
+    {
+      "title": "Chapter 3: Director Qiao's File",
+      "summary": "Institutional pressure reframes the first discovery.",
+      "beats": [
+        "Official denial",
+        "Hidden file",
+        "Dangerous choice"
+      ]
+    }
+  ],
+  "chapters": [
+    {
+      "number": 1,
+      "title": "The Impossible Note",
+      "summary": "The protagonist meets the first anomaly and loses the safety of routine.",
+      "scenes": [
+        "Routine opening",
+        "Anomalous clue",
+        "Catalyst warning"
+      ],
+      "content": "Lin Che began the morning inside a routine scene, trusting the ordinary instruments of medical sci-fi. The case looked harmless until one detail echoed the novel's central premise: A neurologist discovers memories hidden in tremors. Mira arrived before he could explain it away, carrying a warning that made the first clue feel deliberate.",
+      "referenced_characters": [
+        "Lin Che",
+        "Mira"
+      ]
+    }
+  ],
+  "reviews": [
+    {
+      "target": "chapter:1",
+      "passed": true,
+      "summary": "No continuity issues found for known character references.",
+      "issues": []
+    }
+  ]
+}
