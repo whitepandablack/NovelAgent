@@ -32,3 +32,12 @@
 3. `star_clinic_revision_non_regression`：验证修订能递增版本，并保持核心剧情线索开放。
 
 首轮结果：2/3 通过。失败项是 `beat_grounding`，这符合预期，说明当前 deterministic drafter 仍是解释式模板，不具备真正的场景化叙事能力。
+
+## 2026-05-28：第二版 eval 扩展 minimal-pair 和修订质量
+
+新增两个 case：
+
+1. `star_clinic_minimal_pairs`：借鉴 NoCha 的 true/false pair，检查当前结构化项目状态能否支持叙事事实判断。
+2. `star_clinic_revision_quality`：把修订质量从 non-regression 中拆出，专门惩罚“追加审稿说明而非重写小说场景”的修订。
+
+第二轮结果：3/5 通过。新增的 `minimal_pairs` 通过，说明结构化状态已经足以支撑最小叙事事实判断；`revision_quality` 失败，确认当前修订流程只是工程闭环，还不是可接受的小说重写。

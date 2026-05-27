@@ -57,6 +57,54 @@
         "hard_constraints": 100
       },
       "pass_threshold": 80
+    },
+    {
+      "id": "star_clinic_minimal_pairs",
+      "task": "narrative_minimal_pairs",
+      "request": {
+        "title": "星诊所",
+        "premise": "一名神经科医生发现震颤中藏着记忆。",
+        "genre": "医疗科幻",
+        "style": "安静悬疑"
+      },
+      "required": {
+        "pairs": [
+          {
+            "id": "mira_secret",
+            "true_statement": "米拉知道更多真相，却无法安全地全部说出。",
+            "false_statement": "米拉已经安全公开解释了震颤的真实来源。",
+            "evidence": ["characters:米拉"]
+          },
+          {
+            "id": "core_premise",
+            "true_statement": "核心异常围绕震颤中隐藏记忆展开。",
+            "false_statement": "核心异常已经在第一章被乔主任完全解决。",
+            "evidence": ["world_rules:WR-001", "plot_threads:PT-001"]
+          }
+        ]
+      },
+      "rubric": {
+        "minimal_pair_accuracy": 100
+      },
+      "pass_threshold": 100
+    },
+    {
+      "id": "star_clinic_revision_quality",
+      "task": "revision_quality",
+      "request": {
+        "title": "星诊所",
+        "premise": "一名神经科医生发现震颤中藏着记忆。",
+        "genre": "医疗科幻",
+        "style": "安静悬疑"
+      },
+      "required": {
+        "damaged_content": "林澈追查记录。",
+        "minimum_revision_quality": 60
+      },
+      "rubric": {
+        "revision_quality": 100
+      },
+      "pass_threshold": 80
     }
   ]
 }

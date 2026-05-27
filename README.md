@@ -59,10 +59,12 @@ $env:PYTHONPATH='src;.'
 python -m evaluation.run_eval --evalset evaluation/evalsets/star_clinic_basic.json --out-dir evaluation/results
 ```
 
-当前基准包含三类 case：
+当前基准包含五类 case：
 
 - `star_clinic_plan_chapter_02`：下一章计划硬约束。
 - `star_clinic_beat_grounding`：检查 beat 是否通过场景行动兑现。
 - `star_clinic_revision_non_regression`：修订后不破坏已有故事状态。
+- `star_clinic_minimal_pairs`：用真/假叙事声明对检查故事记忆。
+- `star_clinic_revision_quality`：检查修订是否重写成小说场景，而不是追加审稿说明。
 
 如果某个 case 暴露当前 agent 的真实短板，命令会返回非零退出码，并在 `evaluation/results/` 写入 JSON 和 Markdown 报告。

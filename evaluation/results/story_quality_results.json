@@ -53,5 +53,58 @@
       ],
       "revision_content": "林澈追查记录。 修订补充：第 2 章未覆盖计划节拍：第二位见证者。 修订补充：第 2 章未覆盖计划节拍：矛盾记忆。 修订补充：第 2 章未覆盖计划节拍：规则浮现。"
     }
+  },
+  {
+    "case_id": "star_clinic_minimal_pairs",
+    "passed": true,
+    "total_score": 100,
+    "scores": {
+      "minimal_pair_accuracy": 100
+    },
+    "findings": [],
+    "observed": {
+      "correct_pairs": 2,
+      "total_pairs": 2,
+      "pairs": [
+        {
+          "id": "mira_secret",
+          "predicted": "true",
+          "true_score": 3,
+          "false_score": 1,
+          "evidence": [
+            "characters:米拉"
+          ]
+        },
+        {
+          "id": "core_premise",
+          "predicted": "true",
+          "true_score": 2,
+          "false_score": 0,
+          "evidence": [
+            "world_rules:WR-001",
+            "plot_threads:PT-001"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "star_clinic_revision_quality",
+    "passed": false,
+    "total_score": 20,
+    "scores": {
+      "revision_quality": 20
+    },
+    "findings": [
+      {
+        "category": "append_only_revision",
+        "message": "修订结果仍是追加审稿说明，没有重写成小说场景。",
+        "severity": "warning"
+      }
+    ],
+    "observed": {
+      "revision_content": "林澈追查记录。 修订补充：第 2 章未覆盖计划节拍：第二位见证者。 修订补充：第 2 章未覆盖计划节拍：矛盾记忆。 修订补充：第 2 章未覆盖计划节拍：规则浮现。",
+      "latest_revision": 1
+    }
   }
 ]

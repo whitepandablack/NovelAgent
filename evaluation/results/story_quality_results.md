@@ -16,3 +16,15 @@
 
 - Total: 100
 - Scores: {'hard_constraints': 100}
+
+## star_clinic_minimal_pairs: PASS
+
+- Total: 100
+- Scores: {'minimal_pair_accuracy': 100}
+
+## star_clinic_revision_quality: FAIL
+
+- Total: 20
+- Scores: {'revision_quality': 20}
+- Findings:
+  - [warning] append_only_revision: 修订结果仍是追加审稿说明，没有重写成小说场景。

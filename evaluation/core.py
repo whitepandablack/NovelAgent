@@ -52,6 +52,10 @@ class StoryQualityEvaluator:
             return self._evaluate_beat_grounding(case)
         if case.task == "revision_non_regression":
             return self._evaluate_revision_non_regression(case)
+        if case.task == "narrative_minimal_pairs":
+            return self._evaluate_narrative_minimal_pairs(case)
+        if case.task == "revision_quality":
+            return self._evaluate_revision_quality(case)
         return StoryQualityReport(
             case_id=case.id,
             passed=False,
@@ -226,6 +230,84 @@ class StoryQualityEvaluator:
                 },
             )
 
+    def _evaluate_narrative_minimal_pairs(self, case: StoryEvalCase) -> StoryQualityReport:
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._seed_project(case, Path(tmp))
+            pairs = case.required.get("pairs", [])
+            results = []
+            for pair in pairs:
+                true_score = self._narrative_statement_support(project, pair["true_statement"])
+                false_score = self._narrative_statement_support(project, pair["false_statement"])
+                predicted = "true" if true_score >= false_score else "false"
+                results.append(
+                    {
+                        "id": pair["id"],
+                        "predicted": predicted,
+                        "true_score": true_score,
+                        "false_score": false_score,
+                        "evidence": pair.get("evidence", []),
+                    }
+                )
+            correct = len([item for item in results if item["predicted"] == "true"])
+            total = len(results)
+            accuracy = round(100 * correct / total) if total else 0
+            findings: list[StoryQualityFinding] = []
+            if accuracy < 100:
+                findings.append(
+                    StoryQualityFinding(
+                        category="minimal_pair_accuracy",
+                        message=f"叙事 minimal-pair 准确率为 {accuracy}%。",
+                        severity="error",
+                    )
+                )
+            return self._build_report(
+                case=case,
+                scores={"minimal_pair_accuracy": accuracy},
+                findings=findings,
+                observed={
+                    "correct_pairs": correct,
+                    "total_pairs": total,
+                    "pairs": results,
+                },
+            )
+
+    def _evaluate_revision_quality(self, case: StoryEvalCase) -> StoryQualityReport:
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._seed_project(case, Path(tmp))
+            workflow = NovelWorkflow()
+            workflow.plan_next_chapter(project)
+            chapter = workflow.draft_next_chapter(project)
+            chapter.content = case.required.get("damaged_content", chapter.content)
+            report = workflow.review_chapter(project, chapter.number)
+            workflow.create_revision_tasks(project, report)
+            revised = workflow.revise_chapter(project, chapter.number)
+            score = self._score_revision_quality(revised.content)
+            findings: list[StoryQualityFinding] = []
+            minimum = case.required.get("minimum_revision_quality", 60)
+            if "修订补充：" in revised.content:
+                findings.append(
+                    StoryQualityFinding(
+                        category="append_only_revision",
+                        message="修订结果仍是追加审稿说明，没有重写成小说场景。",
+                    )
+                )
+            if score < minimum and not findings:
+                findings.append(
+                    StoryQualityFinding(
+                        category="revision_quality",
+                        message=f"修订质量得分 {score}，低于最低要求 {minimum}。",
+                    )
+                )
+            return self._build_report(
+                case=case,
+                scores={"revision_quality": score},
+                findings=findings,
+                observed={
+                    "revision_content": revised.content,
+                    "latest_revision": revised.revision,
+                },
+            )
+
     def _seed_project(self, case: StoryEvalCase, root: Path):
         request = NovelRequest(**case.request)
         return NovelWorkflow().run_seed_project(request, root)
@@ -239,6 +321,69 @@ class StoryQualityEvaluator:
         if "本章需要完成的节拍包括" in content:
             return 1
         return 3
+
+    def _narrative_statement_support(self, project, statement: str) -> int:
+        support = 0
+        text_sources = []
+        text_sources.extend(
+            [
+                project.title,
+                project.premise,
+                project.genre,
+                project.style,
+                project.story_bible.logline,
+                " ".join(project.story_bible.rules),
+            ]
+        )
+        text_sources.extend(
+            [
+                f"{character.name} {character.role} {character.goal} {character.conflict} {character.arc}"
+                for character in project.characters
+            ]
+        )
+        text_sources.extend(
+            [
+                f"{rule.code} {rule.description} {rule.source} {rule.status}"
+                for rule in project.world_rules
+            ]
+        )
+        text_sources.extend(
+            [
+                f"{thread.code} {thread.title} {thread.status} {thread.payoff}"
+                for thread in project.plot_threads
+            ]
+        )
+        text_sources.extend([chapter.content for chapter in project.chapters])
+        corpus = "\n".join(text_sources)
+        for token in self._statement_tokens(statement):
+            if token in corpus:
+                support += 1
+        negation_markers = ["已经安全公开", "完全解决", "真实来源", "公开解释"]
+        if any(marker in statement for marker in negation_markers):
+            support -= 2
+        return support
+
+    def _statement_tokens(self, statement: str) -> list[str]:
+        candidates = [
+            "米拉",
+            "更多真相",
+            "无法安全",
+            "震颤",
+            "隐藏记忆",
+            "核心异常",
+            "乔主任",
+            "第一章",
+            "真实来源",
+        ]
+        return [token for token in candidates if token in statement]
+
+    def _score_revision_quality(self, content: str) -> int:
+        if "修订补充：" in content:
+            return 20
+        scene_markers = ["说", "问", "递", "看见", "记录", "扫描", "走廊", "物证"]
+        if any(marker in content for marker in scene_markers):
+            return 80
+        return 50
 
     def _expect_equal(
         self,

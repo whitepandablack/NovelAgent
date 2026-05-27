@@ -46,6 +46,28 @@ class StoryEvaluationTests(unittest.TestCase):
         self.assertEqual(report.observed["latest_revision"], 1)
         self.assertIn("PT-001", report.observed["open_plot_threads"])
 
+    def test_minimal_pair_case_scores_narrative_memory(self):
+        cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
+        case = next(item for item in cases if item.id == "star_clinic_minimal_pairs")
+
+        report = StoryQualityEvaluator().evaluate(case)
+
+        self.assertTrue(report.passed)
+        self.assertEqual(report.scores["minimal_pair_accuracy"], 100)
+        self.assertEqual(report.observed["correct_pairs"], report.observed["total_pairs"])
+
+    def test_revision_quality_case_exposes_append_only_revision(self):
+        cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
+        case = next(item for item in cases if item.id == "star_clinic_revision_quality")
+
+        report = StoryQualityEvaluator().evaluate(case)
+
+        self.assertFalse(report.passed)
+        self.assertLess(report.scores["revision_quality"], 60)
+        self.assertTrue(
+            any(finding.category == "append_only_revision" for finding in report.findings)
+        )
+
     def test_evaluator_writes_json_and_markdown_results(self):
         cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
 
