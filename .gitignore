@@ -11,3 +11,4 @@ build/
 .env
 .env.*
 manuscript.md
+.tmp-ai-research-skills/

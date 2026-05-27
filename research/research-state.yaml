@@ -1,0 +1,33 @@
+project: NovelAgent story quality evaluation
+date_started: 2026-05-27
+status: bootstrapping
+research_question: 如何构建一个能稳定评测长篇小说创作 agent 的故事质量 eval 体系？
+primary_skills:
+  - autoresearch
+  - brainstorming-research-ideas
+  - creative-thinking-for-research
+  - ara-compiler
+  - ara-research-manager
+  - ara-rigor-reviewer
+working_hypotheses:
+  - id: H1
+    title: Narrative state regression tests
+    claim: 长篇小说 agent 的质量评测应像软件回归测试一样固定状态、动作和预期状态变化，而不只评价单章文本好坏。
+    status: proposed
+  - id: H2
+    title: Minimal-pair narrative consistency
+    claim: 借鉴 NoCha 的 true/false minimal pairs，可为小说项目生成“真/假设定声明对”，测试 agent 是否真正维护世界观、人物和伏笔。
+    status: proposed
+  - id: H3
+    title: Beat-to-scene grounding score
+    claim: 故事质量评分应区分“提到 beat”和“通过场景行动兑现 beat”，否则 agent 会用解释腔刷分。
+    status: proposed
+  - id: H4
+    title: Revision non-regression
+    claim: 修订 eval 的核心不是文本更顺，而是修复指定问题的同时不破坏已有设定、时间线和伏笔状态。
+    status: proposed
+next_actions:
+  - 建立第一版 StoryEvalCase JSON schema。
+  - 为星诊所构造 3 个固定 eval case：下一章规划、伏笔一致性、修订不回归。
+  - 将规则评测和 LLM-as-judge 评测分层，先实现可确定测试。
+  - 用 ARA 结构记录 claims、evidence、dead ends 和后续实验。
