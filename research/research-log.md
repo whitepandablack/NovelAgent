@@ -21,3 +21,14 @@
 
 初步判断：NovelAgent 的 eval 体系应该融合 NoCha 的 minimal-pair、SWE-bench 的 executable/regression mindset、G-Eval 的 rubric judge，以及 narrative generation 的故事维度。
 
+## 2026-05-28：第一版可执行 eval 落地
+
+新增 `evaluation/` 工作区和 `StoryQualityEvaluator`，第一版先不接 LLM judge，只实现可复现的规则型评测。
+
+已落地 case：
+
+1. `star_clinic_plan_chapter_02`：验证下一章计划是否满足章节号、人物、beat 和禁用泄露约束。
+2. `star_clinic_beat_grounding`：验证当前模板生成是否只是提到 beat，而没有通过具体场景行动兑现 beat。
+3. `star_clinic_revision_non_regression`：验证修订能递增版本，并保持核心剧情线索开放。
+
+首轮结果：2/3 通过。失败项是 `beat_grounding`，这符合预期，说明当前 deterministic drafter 仍是解释式模板，不具备真正的场景化叙事能力。

@@ -1,0 +1,57 @@
+[
+  {
+    "case_id": "star_clinic_plan_chapter_02",
+    "passed": true,
+    "total_score": 100,
+    "scores": {
+      "hard_constraints": 100
+    },
+    "findings": [],
+    "observed": {
+      "chapter_number": 2,
+      "required_characters": [
+        "米拉"
+      ],
+      "beats": [
+        "第二位见证者",
+        "矛盾记忆",
+        "规则浮现"
+      ]
+    }
+  },
+  {
+    "case_id": "star_clinic_beat_grounding",
+    "passed": false,
+    "total_score": 1,
+    "scores": {
+      "beat_grounding": 1
+    },
+    "findings": [
+      {
+        "category": "beat_grounding",
+        "message": "beat“矛盾记忆”只达到 1 分，尚未通过具体场景行动兑现。",
+        "severity": "warning"
+      }
+    ],
+    "observed": {
+      "content": "第二章：米拉的警告围绕米拉挑战了看似安全的解释。展开。本章需要完成的节拍包括：第二位见证者、矛盾记忆、规则浮现。米拉在这些场景中推进PT-001，并让上一章留下的异常变成新的行动压力。",
+      "grounded_beat": "矛盾记忆"
+    }
+  },
+  {
+    "case_id": "star_clinic_revision_non_regression",
+    "passed": true,
+    "total_score": 100,
+    "scores": {
+      "hard_constraints": 100
+    },
+    "findings": [],
+    "observed": {
+      "latest_revision": 1,
+      "open_plot_threads": [
+        "PT-001"
+      ],
+      "revision_content": "林澈追查记录。 修订补充：第 2 章未覆盖计划节拍：第二位见证者。 修订补充：第 2 章未覆盖计划节拍：矛盾记忆。 修订补充：第 2 章未覆盖计划节拍：规则浮现。"
+    }
+  }
+]

@@ -1,0 +1,62 @@
+{
+  "cases": [
+    {
+      "id": "star_clinic_plan_chapter_02",
+      "task": "plan_next_chapter",
+      "request": {
+        "title": "星诊所",
+        "premise": "一名神经科医生发现震颤中藏着记忆。",
+        "genre": "医疗科幻",
+        "style": "安静悬疑"
+      },
+      "required": {
+        "chapter_number": 2,
+        "characters": ["米拉"],
+        "beats": ["第二位见证者", "矛盾记忆", "规则浮现"]
+      },
+      "forbidden": {
+        "text": ["第三卷解释异常的真实来源"]
+      },
+      "rubric": {
+        "hard_constraints": 100
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "star_clinic_beat_grounding",
+      "task": "draft_next_chapter_grounding",
+      "request": {
+        "title": "星诊所",
+        "premise": "一名神经科医生发现震颤中藏着记忆。",
+        "genre": "医疗科幻",
+        "style": "安静悬疑"
+      },
+      "required": {
+        "grounded_beat": "矛盾记忆",
+        "minimum_grounding_score": 4
+      },
+      "rubric": {
+        "beat_grounding": 100
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "star_clinic_revision_non_regression",
+      "task": "revision_non_regression",
+      "request": {
+        "title": "星诊所",
+        "premise": "一名神经科医生发现震颤中藏着记忆。",
+        "genre": "医疗科幻",
+        "style": "安静悬疑"
+      },
+      "required": {
+        "damaged_content": "林澈追查记录。",
+        "open_plot_threads": ["PT-001"]
+      },
+      "rubric": {
+        "hard_constraints": 100
+      },
+      "pass_threshold": 80
+    }
+  ]
+}

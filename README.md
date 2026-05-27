@@ -49,3 +49,20 @@ LLM 配置只从环境变量读取，不把 API Key 写入源码或文档：
 $env:PYTHONPATH='src'
 python -m unittest discover -s tests -v
 ```
+
+## 故事质量 Eval
+
+第一版 eval 固定使用 `星诊所` 作为基准项目，评测 NovelAgent 是否能在固定故事状态下正确规划、起草和修订。
+
+```powershell
+$env:PYTHONPATH='src;.'
+python -m evaluation.run_eval --evalset evaluation/evalsets/star_clinic_basic.json --out-dir evaluation/results
+```
+
+当前基准包含三类 case：
+
+- `star_clinic_plan_chapter_02`：下一章计划硬约束。
+- `star_clinic_beat_grounding`：检查 beat 是否通过场景行动兑现。
+- `star_clinic_revision_non_regression`：修订后不破坏已有故事状态。
+
+如果某个 case 暴露当前 agent 的真实短板，命令会返回非零退出码，并在 `evaluation/results/` 写入 JSON 和 Markdown 报告。
