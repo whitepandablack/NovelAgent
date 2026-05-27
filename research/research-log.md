@@ -51,3 +51,17 @@
 - 下一章计划稳定保留主角林澈，同时加入章节关键人物米拉，避免场景中人物自我重复。
 
 第三轮结果：5/5 通过。`beat_grounding` 从 1 提升到 5，`revision_quality` 从 20 提升到 80。
+
+## 2026-05-28：ARA 预审查
+
+对当前 `research/ara` 做了 pre-Level-2 审查，结论是：当前 ARA 已经有问题、claims、实验草案和探索树，但还不能进入正式 ARA Seal Level 2。
+
+主要问题：
+
+- 缺少 source-specific evidence 文件。
+- 当前 eval 只覆盖 `星诊所` 一个项目，存在过拟合风险。
+- `beat_grounding` 使用 0-5 分，而其他分数多为 0-100，报告量纲不统一。
+- `revision_quality` 仍是启发式规则，不能代表真实修订质量。
+- minimal-pair 太接近关键词匹配，叙事记忆压力不足。
+
+下一步应先补完整 ARA 结构和第二波更难 eval，再正式运行 Level 2 语义审查。
