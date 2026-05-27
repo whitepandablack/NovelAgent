@@ -45,6 +45,7 @@ class NovelWorkflowTests(unittest.TestCase):
             self.assertEqual(first_plan.number, 2)
             self.assertEqual(second_plan.number, 2)
             self.assertEqual(len(project.chapter_plans), 1)
+            self.assertIn("林澈", first_plan.required_characters)
             self.assertIn("米拉", first_plan.required_characters)
             self.assertTrue(project.path.exists())
 
@@ -91,7 +92,8 @@ class NovelWorkflowTests(unittest.TestCase):
             self.assertTrue(all(task.completed for task in project.revision_tasks))
             self.assertEqual(revised.number, chapter.number)
             self.assertEqual(revised.revision, 1)
-            self.assertIn("修订补充", revised.content)
+            self.assertIn("重排场景", revised.content)
+            self.assertNotIn("修订补充", revised.content)
 
 
 if __name__ == "__main__":

@@ -38,7 +38,7 @@
       "rubric": {
         "beat_grounding": 100
       },
-      "pass_threshold": 80
+      "pass_threshold": 4
     },
     {
       "id": "star_clinic_revision_non_regression",

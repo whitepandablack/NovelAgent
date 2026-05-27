@@ -24,17 +24,15 @@ class StoryEvaluationTests(unittest.TestCase):
         self.assertGreaterEqual(report.total_score, 80)
         self.assertIn("hard_constraints", report.scores)
 
-    def test_beat_grounding_case_exposes_template_weakness(self):
+    def test_beat_grounding_case_passes_when_draft_uses_scene_action(self):
         cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
         case = next(item for item in cases if item.id == "star_clinic_beat_grounding")
 
         report = StoryQualityEvaluator().evaluate(case)
 
-        self.assertFalse(report.passed)
-        self.assertLess(report.scores["beat_grounding"], 4)
-        self.assertTrue(
-            any(finding.category == "beat_grounding" for finding in report.findings)
-        )
+        self.assertTrue(report.passed)
+        self.assertGreaterEqual(report.scores["beat_grounding"], 4)
+        self.assertNotIn("本章需要完成的节拍包括", report.observed["content"])
 
     def test_revision_non_regression_case_records_revision_and_open_thread(self):
         cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
@@ -56,17 +54,15 @@ class StoryEvaluationTests(unittest.TestCase):
         self.assertEqual(report.scores["minimal_pair_accuracy"], 100)
         self.assertEqual(report.observed["correct_pairs"], report.observed["total_pairs"])
 
-    def test_revision_quality_case_exposes_append_only_revision(self):
+    def test_revision_quality_case_passes_when_revision_rewrites_scene(self):
         cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
         case = next(item for item in cases if item.id == "star_clinic_revision_quality")
 
         report = StoryQualityEvaluator().evaluate(case)
 
-        self.assertFalse(report.passed)
-        self.assertLess(report.scores["revision_quality"], 60)
-        self.assertTrue(
-            any(finding.category == "append_only_revision" for finding in report.findings)
-        )
+        self.assertTrue(report.passed)
+        self.assertGreaterEqual(report.scores["revision_quality"], 60)
+        self.assertNotIn("修订补充：", report.observed["revision_content"])
 
     def test_evaluator_writes_json_and_markdown_results(self):
         cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))

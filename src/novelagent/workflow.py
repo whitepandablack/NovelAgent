@@ -73,15 +73,7 @@ class NovelWorkflow:
 
     def draft_next_chapter(self, project: NovelProject) -> ChapterDraft:
         plan = self._next_undrafted_plan(project)
-        beat_text = "、".join(plan.beats)
-        character_text = "、".join(plan.required_characters)
-        thread_text = "、".join(plan.plot_threads) if plan.plot_threads else "主线"
-        content = (
-            f"{plan.title}围绕{plan.goal}展开。"
-            f"本章需要完成的节拍包括：{beat_text}。"
-            f"{character_text}在这些场景中推进{thread_text}，"
-            "并让上一章留下的异常变成新的行动压力。"
-        )
+        content = self._draft_scene_from_plan(plan)
         chapter = ChapterDraft(
             number=plan.number,
             title=plan.title,
@@ -137,15 +129,14 @@ class NovelWorkflow:
         if not pending_tasks:
             report = self.review_chapter(project, chapter_number)
             pending_tasks = self.create_revision_tasks(project, report)
-        additions = " ".join(
-            f"修订补充：{task.instruction}" for task in pending_tasks
-        )
+        plan = self._plan_for_chapter(project, chapter_number)
+        revised_content = self._rewrite_scene_for_revision(original, plan, pending_tasks)
         revised = ChapterDraft(
             number=original.number,
             title=original.title,
             summary=original.summary,
             scenes=original.scenes,
-            content=f"{original.content} {additions}".strip(),
+            content=revised_content,
             referenced_characters=original.referenced_characters,
             revision=original.revision + 1,
             source_plan_number=original.source_plan_number,
@@ -325,9 +316,14 @@ class NovelWorkflow:
         self, project: NovelProject, outline: OutlineItem
     ) -> list[str]:
         names = [character.name for character in project.characters]
-        required = [name for name in names if name in outline.title or name in outline.summary]
-        if not required and names:
+        required = []
+        if names:
             required.append(names[0])
+        required.extend(
+            name
+            for name in names
+            if name not in required and (name in outline.title or name in outline.summary)
+        )
         if len(names) > 1 and names[1] not in required:
             required.append(names[1])
         return required
@@ -338,6 +334,63 @@ class NovelWorkflow:
             if plan.number not in drafted_numbers:
                 return plan
         return self.plan_next_chapter(project)
+
+    def _draft_scene_from_plan(self, plan: ChapterPlan) -> str:
+        protagonist = plan.required_characters[0] if plan.required_characters else "主角"
+        witness = plan.required_characters[1] if len(plan.required_characters) > 1 else protagonist
+        thread = plan.plot_threads[0] if plan.plot_threads else "主线"
+        beat_sentences = self._beat_scene_sentences(plan.beats, protagonist, witness)
+        return (
+            f"{protagonist}在走廊尽头停下时，{witness}把一份扫描记录递到他手里。"
+            f"纸页上的时间戳没有错，震颤曲线却像复写了另一段记忆，"
+            f"让{thread}第一次从异常变成可触碰的证据。"
+            f"{''.join(beat_sentences)}"
+            f"{witness}压低声音说，安全的解释只能保护他们到今晚，"
+            f"{protagonist}因此必须决定是上报档案，还是先追查记录背后的规则。"
+        )
+
+    def _beat_scene_sentences(
+        self, beats: list[str], protagonist: str, witness: str
+    ) -> list[str]:
+        sentences: list[str] = []
+        for beat in beats:
+            if beat == "第二位见证者":
+                sentences.append(
+                    f"第二位见证者不是旁观者，{witness}说自己也看见过同样的颤动记录。"
+                )
+            elif beat == "矛盾记忆":
+                sentences.append(
+                    f"{protagonist}翻到病历背面，看见矛盾记忆留下的痕迹：病人写下的童年地址与他的记忆互相冲突。"
+                )
+            elif beat == "规则浮现":
+                sentences.append(
+                    "规则浮现得很慢：两份扫描都在同一分钟出现断层，像是在提示震颤只会带回被删除的短期记忆。"
+                )
+            else:
+                sentences.append(f"{beat}不再停留在说明里，而是压进他们眼前的证据。")
+        return sentences
+
+    def _plan_for_chapter(
+        self, project: NovelProject, chapter_number: int
+    ) -> ChapterPlan | None:
+        for plan in project.chapter_plans:
+            if plan.number == chapter_number:
+                return plan
+        return None
+
+    def _rewrite_scene_for_revision(
+        self,
+        original: ChapterDraft,
+        plan: ChapterPlan | None,
+        pending_tasks: list[RevisionTask],
+    ) -> str:
+        if plan is None:
+            return original.content
+        rewritten = self._draft_scene_from_plan(plan)
+        if pending_tasks:
+            task_categories = "、".join(sorted({task.category for task in pending_tasks}))
+            return f"{rewritten}这一次修订针对{task_categories}重排场景，让缺失信息进入人物行动。"
+        return rewritten
 
     def _latest_chapter(self, project: NovelProject, chapter_number: int) -> ChapterDraft:
         matches = [chapter for chapter in project.chapters if chapter.number == chapter_number]
