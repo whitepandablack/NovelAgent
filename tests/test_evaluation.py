@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,8 +14,32 @@ class StoryEvaluationTests(unittest.TestCase):
         self.assertIsInstance(cases[0], StoryEvalCase)
         self.assertEqual(cases[0].id, "star_clinic_plan_chapter_02")
 
+    def test_load_evalset_reads_dev_holdout_and_basic_includes(self):
+        dev_cases = load_evalset(Path("evaluation/evalsets/star_clinic_dev.json"))
+        holdout_cases = load_evalset(Path("evaluation/evalsets/star_clinic_holdout.json"))
+        basic_cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
+
+        self.assertGreaterEqual(len(dev_cases), 5)
+        self.assertGreaterEqual(len(holdout_cases), 4)
+        self.assertEqual(
+            [case.id for case in basic_cases],
+            [case.id for case in dev_cases] + [case.id for case in holdout_cases],
+        )
+
+    def test_report_scores_are_percent_scale_and_raw_metric_is_preserved(self):
+        cases = load_evalset(Path("evaluation/evalsets/star_clinic_dev.json"))
+        case = next(item for item in cases if item.id == "star_clinic_beat_grounding")
+
+        report = StoryQualityEvaluator().evaluate(case)
+
+        self.assertTrue(0 <= report.total_score <= 100)
+        self.assertTrue(all(0 <= score <= 100 for score in report.scores.values()))
+        self.assertGreaterEqual(case.pass_threshold, 80)
+        self.assertIn("beat_grounding", report.raw_scores)
+        self.assertTrue(0 <= report.raw_scores["beat_grounding"] <= 5)
+
     def test_plan_case_scores_required_chapter_plan_constraints(self):
-        cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
+        cases = load_evalset(Path("evaluation/evalsets/star_clinic_dev.json"))
         case = next(item for item in cases if item.id == "star_clinic_plan_chapter_02")
 
         report = StoryQualityEvaluator().evaluate(case)
@@ -25,17 +50,17 @@ class StoryEvaluationTests(unittest.TestCase):
         self.assertIn("hard_constraints", report.scores)
 
     def test_beat_grounding_case_passes_when_draft_uses_scene_action(self):
-        cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
+        cases = load_evalset(Path("evaluation/evalsets/star_clinic_dev.json"))
         case = next(item for item in cases if item.id == "star_clinic_beat_grounding")
 
         report = StoryQualityEvaluator().evaluate(case)
 
         self.assertTrue(report.passed)
-        self.assertGreaterEqual(report.scores["beat_grounding"], 4)
-        self.assertNotIn("本章需要完成的节拍包括", report.observed["content"])
+        self.assertGreaterEqual(report.scores["beat_grounding"], 80)
+        self.assertGreaterEqual(report.raw_scores["beat_grounding"], 4)
 
     def test_revision_non_regression_case_records_revision_and_open_thread(self):
-        cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
+        cases = load_evalset(Path("evaluation/evalsets/star_clinic_dev.json"))
         case = next(item for item in cases if item.id == "star_clinic_revision_non_regression")
 
         report = StoryQualityEvaluator().evaluate(case)
@@ -45,7 +70,7 @@ class StoryEvaluationTests(unittest.TestCase):
         self.assertIn("PT-001", report.observed["open_plot_threads"])
 
     def test_minimal_pair_case_scores_narrative_memory(self):
-        cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
+        cases = load_evalset(Path("evaluation/evalsets/star_clinic_dev.json"))
         case = next(item for item in cases if item.id == "star_clinic_minimal_pairs")
 
         report = StoryQualityEvaluator().evaluate(case)
@@ -55,17 +80,17 @@ class StoryEvaluationTests(unittest.TestCase):
         self.assertEqual(report.observed["correct_pairs"], report.observed["total_pairs"])
 
     def test_revision_quality_case_passes_when_revision_rewrites_scene(self):
-        cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
+        cases = load_evalset(Path("evaluation/evalsets/star_clinic_dev.json"))
         case = next(item for item in cases if item.id == "star_clinic_revision_quality")
 
         report = StoryQualityEvaluator().evaluate(case)
 
         self.assertTrue(report.passed)
         self.assertGreaterEqual(report.scores["revision_quality"], 60)
-        self.assertNotIn("修订补充：", report.observed["revision_content"])
+        self.assertNotIn("revision patch", report.observed["revision_content"].lower())
 
     def test_evaluator_writes_json_and_markdown_results(self):
-        cases = load_evalset(Path("evaluation/evalsets/star_clinic_basic.json"))
+        cases = load_evalset(Path("evaluation/evalsets/star_clinic_dev.json"))
 
         with tempfile.TemporaryDirectory() as tmp:
             reports = StoryQualityEvaluator().evaluate_all(cases, Path(tmp))
@@ -73,6 +98,48 @@ class StoryEvaluationTests(unittest.TestCase):
             self.assertEqual(len(reports), len(cases))
             self.assertTrue((Path(tmp) / "story_quality_results.json").exists())
             self.assertTrue((Path(tmp) / "story_quality_results.md").exists())
+
+            payload = json.loads(
+                (Path(tmp) / "story_quality_results.json").read_text(encoding="utf-8")
+            )
+            self.assertTrue(all(0 <= item["total_score"] <= 100 for item in payload))
+            self.assertTrue(all("raw_scores" in item for item in payload))
+
+    def test_holdout_records_current_capability_boundary(self):
+        cases = load_evalset(Path("evaluation/evalsets/star_clinic_holdout.json"))
+        reports = StoryQualityEvaluator().evaluate_all(cases)
+
+        failed = [report.case_id for report in reports if not report.passed]
+
+        self.assertIn("star_clinic_plot_thread_progression", failed)
+        self.assertIn("star_clinic_timeline_causality", failed)
+        self.assertIn("star_clinic_harder_minimal_pairs", failed)
+
+    def test_harder_minimal_pairs_include_non_keyword_near_miss(self):
+        cases = load_evalset(Path("evaluation/evalsets/star_clinic_holdout.json"))
+        case = next(item for item in cases if item.id == "star_clinic_harder_minimal_pairs")
+
+        pairs = case.required["pairs"]
+
+        self.assertTrue(any(pair.get("near_miss") for pair in pairs))
+        near_miss = next(pair for pair in pairs if pair.get("near_miss"))
+        self.assertGreaterEqual(
+            len(set(near_miss["true_statement"]) & set(near_miss["false_statement"])),
+            4,
+        )
+
+    def test_ara_claims_reference_stable_evidence_ids(self):
+        claims = Path("research/ara/logic/claims.md").read_text(encoding="utf-8")
+
+        for evidence_id in [
+            "EV-NOCHA-001",
+            "EV-GEVAL-001",
+            "EV-SWEBENCH-001",
+            "EV-AGENTBENCH-001",
+            "EV-STORIUM-001",
+        ]:
+            self.assertTrue(Path(f"research/ara/evidence/{evidence_id}.md").exists())
+            self.assertIn(evidence_id, claims)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,119 @@
+[
+  {
+    "case_id": "star_clinic_character_arc_consistency",
+    "passed": false,
+    "total_score": 0,
+    "scores": {
+      "character_arc_consistency": 0
+    },
+    "findings": [
+      {
+        "category": "character_arc_consistency",
+        "message": "人物行动没有足够体现 goal/conflict/arc。",
+        "severity": "error"
+      }
+    ],
+    "observed": {
+      "matched_arc_markers": [],
+      "content": "林澈在走廊尽头停下时，米拉把一份扫描记录递到他手里。纸页上的时间戳没有错，震颤曲线却像复写了另一段记忆，让PT-001第一次从异常变成可触碰的证据。第二位见证者不是旁观者，米拉说自己也看见过同样的颤动记录。林澈翻到病历背面，看见矛盾记忆留下的痕迹：病人写下的童年地址与他的记忆互相冲突。规则浮现得很慢：两份扫描都在同一分钟出现断层，像是在提示震颤只会带回被删除的短期记忆。米拉压低声音说，安全的解释只能保护他们到今晚，林澈因此必须决定是上报档案，还是先追查记录背后的规则。"
+    },
+    "raw_scores": {}
+  },
+  {
+    "case_id": "star_clinic_plot_thread_progression",
+    "passed": false,
+    "total_score": 50,
+    "scores": {
+      "plot_thread_progression": 50
+    },
+    "findings": [
+      {
+        "category": "plot_thread_progression",
+        "message": "PT-001 没有从重复提及推进到 developed 状态。",
+        "severity": "error"
+      },
+      {
+        "category": "plot_thread_progression",
+        "message": "PT-001 没有记录第 2 章的推进。",
+        "severity": "error"
+      }
+    ],
+    "observed": {
+      "PT-001": {
+        "status": "open",
+        "related_chapters": [
+          1
+        ]
+      }
+    },
+    "raw_scores": {}
+  },
+  {
+    "case_id": "star_clinic_timeline_causality",
+    "passed": false,
+    "total_score": 50,
+    "scores": {
+      "timeline_causality": 50
+    },
+    "findings": [
+      {
+        "category": "timeline_causality",
+        "message": "时间线摘要没有记录可审计的因果连接。",
+        "severity": "error"
+      }
+    ],
+    "observed": {
+      "timeline_summaries": [
+        "主角遭遇第一个异常，并失去日常秩序带来的安全感。",
+        "米拉挑战了看似安全的解释。"
+      ],
+      "matched_markers": []
+    },
+    "raw_scores": {}
+  },
+  {
+    "case_id": "star_clinic_harder_minimal_pairs",
+    "passed": false,
+    "total_score": 50,
+    "scores": {
+      "minimal_pair_accuracy": 50
+    },
+    "findings": [
+      {
+        "category": "minimal_pair_accuracy",
+        "message": "叙事 minimal-pair 准确率为 50%。",
+        "severity": "error"
+      }
+    ],
+    "observed": {
+      "correct_pairs": 1,
+      "total_pairs": 2,
+      "pairs": [
+        {
+          "id": "causal_near_miss",
+          "predicted": "false",
+          "correct": false,
+          "true_score": 0,
+          "false_score": 0,
+          "near_miss": true,
+          "evidence": [
+            "timeline:chapter_1",
+            "timeline:chapter_2"
+          ]
+        },
+        {
+          "id": "thread_state_near_miss",
+          "predicted": "true",
+          "correct": true,
+          "true_score": 1,
+          "false_score": -1,
+          "near_miss": true,
+          "evidence": [
+            "plot_threads:PT-001"
+          ]
+        }
+      ]
+    },
+    "raw_scores": {}
+  }
+]

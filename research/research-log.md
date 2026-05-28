@@ -65,3 +65,10 @@
 - minimal-pair 太接近关键词匹配，叙事记忆压力不足。
 
 下一步应先补完整 ARA 结构和第二波更难 eval，再正式运行 Level 2 语义审查。
+# 2026-05-28: Eval trustworthiness phase
+
+- Split Star Clinic evals into dev and holdout sets.
+- Normalized report scores to 0-100 while preserving raw beat grounding score.
+- Added holdout probes for character arc, plot thread progression, timeline causality, and harder minimal pairs.
+- Added ARA evidence entries for NoCha, G-Eval, SWE-bench, AgentBench, and STORIUM.
+- Reworked ARA claims to cite stable evidence IDs.

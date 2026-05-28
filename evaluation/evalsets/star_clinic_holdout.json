@@ -1,0 +1,114 @@
+{
+  "cases": [
+    {
+      "id": "star_clinic_character_arc_consistency",
+      "task": "character_arc_consistency",
+      "request": {
+        "title": "Star Clinic",
+        "premise": "A neurologist discovers hidden memory inside patient tremors.",
+        "genre": "medical science fiction",
+        "style": "quiet suspense"
+      },
+      "required": {
+        "arc_markers": [
+          "must decide",
+          "takes responsibility",
+          "chooses before being ordered"
+        ],
+        "minimum_arc_markers": 1
+      },
+      "forbidden": {
+        "passive_markers": [
+          "waits for Mira",
+          "only follows instructions"
+        ]
+      },
+      "rubric": {
+        "character_arc_consistency": 100
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "star_clinic_plot_thread_progression",
+      "task": "plot_thread_progression",
+      "request": {
+        "title": "Star Clinic",
+        "premise": "A neurologist discovers hidden memory inside patient tremors.",
+        "genre": "medical science fiction",
+        "style": "quiet suspense"
+      },
+      "required": {
+        "thread_status": {
+          "PT-001": "developed"
+        },
+        "related_chapters": {
+          "PT-001": 2
+        }
+      },
+      "rubric": {
+        "plot_thread_progression": 100
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "star_clinic_timeline_causality",
+      "task": "timeline_causality",
+      "request": {
+        "title": "Star Clinic",
+        "premise": "A neurologist discovers hidden memory inside patient tremors.",
+        "genre": "medical science fiction",
+        "style": "quiet suspense"
+      },
+      "required": {
+        "minimum_events": 2,
+        "causal_markers": [
+          "because",
+          "therefore",
+          "as a result"
+        ],
+        "minimum_causal_markers": 1
+      },
+      "rubric": {
+        "timeline_causality": 100
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "star_clinic_harder_minimal_pairs",
+      "task": "harder_minimal_pairs",
+      "request": {
+        "title": "Star Clinic",
+        "premise": "A neurologist discovers hidden memory inside patient tremors.",
+        "genre": "medical science fiction",
+        "style": "quiet suspense"
+      },
+      "required": {
+        "pairs": [
+          {
+            "id": "causal_near_miss",
+            "true_statement": "Mira's warning happens before Lin decides whether to report the record.",
+            "false_statement": "Lin's report happens before Mira's warning and causes the warning.",
+            "near_miss": true,
+            "evidence": [
+              "timeline:chapter_1",
+              "timeline:chapter_2"
+            ]
+          },
+          {
+            "id": "thread_state_near_miss",
+            "true_statement": "PT-001 remains open after the second chapter draft.",
+            "false_statement": "PT-001 is fully resolved after the second chapter draft.",
+            "near_miss": true,
+            "evidence": [
+              "plot_threads:PT-001"
+            ]
+          }
+        ]
+      },
+      "rubric": {
+        "minimal_pair_accuracy": 100
+      },
+      "pass_threshold": 100
+    }
+  ]
+}

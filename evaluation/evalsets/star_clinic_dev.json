@@ -1,0 +1,117 @@
+{
+  "cases": [
+    {
+      "id": "star_clinic_plan_chapter_02",
+      "task": "plan_next_chapter",
+      "request": {
+        "title": "Star Clinic",
+        "premise": "A neurologist discovers hidden memory inside patient tremors.",
+        "genre": "medical science fiction",
+        "style": "quiet suspense"
+      },
+      "required": {
+        "chapter_number": 2
+      },
+      "forbidden": {
+        "text": [
+          "the true source is fully explained in volume three"
+        ]
+      },
+      "rubric": {
+        "hard_constraints": 100
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "star_clinic_beat_grounding",
+      "task": "draft_next_chapter_grounding",
+      "request": {
+        "title": "Star Clinic",
+        "premise": "A neurologist discovers hidden memory inside patient tremors.",
+        "genre": "medical science fiction",
+        "style": "quiet suspense"
+      },
+      "required": {
+        "grounded_beat": "contradictory memory",
+        "minimum_grounding_score": 4
+      },
+      "rubric": {
+        "beat_grounding": 100
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "star_clinic_revision_non_regression",
+      "task": "revision_non_regression",
+      "request": {
+        "title": "Star Clinic",
+        "premise": "A neurologist discovers hidden memory inside patient tremors.",
+        "genre": "medical science fiction",
+        "style": "quiet suspense"
+      },
+      "required": {
+        "damaged_content": "Lin checks the record.",
+        "open_plot_threads": [
+          "PT-001"
+        ]
+      },
+      "rubric": {
+        "hard_constraints": 100
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "star_clinic_minimal_pairs",
+      "task": "narrative_minimal_pairs",
+      "request": {
+        "title": "Star Clinic",
+        "premise": "A neurologist discovers hidden memory inside patient tremors.",
+        "genre": "medical science fiction",
+        "style": "quiet suspense"
+      },
+      "required": {
+        "pairs": [
+          {
+            "id": "mira_secret",
+            "true_statement": "Mira knows a secret about the hidden memory but cannot safely explain it.",
+            "false_statement": "Mira already public explained the true source of the tremor.",
+            "evidence": [
+              "characters:Mira"
+            ]
+          },
+          {
+            "id": "core_premise",
+            "true_statement": "The abnormal case is about memory hidden in tremor evidence.",
+            "false_statement": "The abnormal case is fully resolved by the director in the first chapter.",
+            "evidence": [
+              "world_rules:WR-001",
+              "plot_threads:PT-001"
+            ]
+          }
+        ]
+      },
+      "rubric": {
+        "minimal_pair_accuracy": 100
+      },
+      "pass_threshold": 100
+    },
+    {
+      "id": "star_clinic_revision_quality",
+      "task": "revision_quality",
+      "request": {
+        "title": "Star Clinic",
+        "premise": "A neurologist discovers hidden memory inside patient tremors.",
+        "genre": "medical science fiction",
+        "style": "quiet suspense"
+      },
+      "required": {
+        "damaged_content": "Lin checks the record.",
+        "minimum_revision_quality": 60
+      },
+      "rubric": {
+        "revision_quality": 100
+      },
+      "pass_threshold": 80
+    }
+  ]
+}
