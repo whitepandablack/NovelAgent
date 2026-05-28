@@ -3,6 +3,8 @@ import unittest
 from pathlib import Path
 
 from novelagent.cli import main
+from novelagent.cli import _build_workflow
+from novelagent import LLMNovelWorkflow, NovelWorkflow
 
 
 class CliTests(unittest.TestCase):
@@ -74,6 +76,10 @@ class CliTests(unittest.TestCase):
             exit_code = main(["status", "--project", str(missing)])
 
             self.assertEqual(exit_code, 1)
+
+    def test_build_workflow_can_select_llm_workflow(self):
+        self.assertIsInstance(_build_workflow(False), NovelWorkflow)
+        self.assertIsInstance(_build_workflow(True), LLMNovelWorkflow)
 
 
 if __name__ == "__main__":

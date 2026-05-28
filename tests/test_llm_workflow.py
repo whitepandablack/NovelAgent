@@ -1,0 +1,122 @@
+import tempfile
+import unittest
+from pathlib import Path
+
+from novelagent import LLMNovelWorkflow, NovelRequest, NovelWorkflow
+
+
+class FakeLLMClient:
+    def __init__(self):
+        self.calls = []
+
+    def generate_json(self, *, system_prompt, user_payload):
+        self.calls.append({"system_prompt": system_prompt, "user_payload": user_payload})
+        task = user_payload["task"]
+        if task == "plan_next_chapter":
+            return {
+                "number": 2,
+                "title": "第二章：米拉的警告",
+                "goal": "林澈在米拉的警告下决定暂缓上报记录。",
+                "scenes": ["走廊交接扫描记录", "林澈选择继续追查"],
+                "beats": ["第二位见证者", "矛盾记忆", "规则浮现"],
+                "required_characters": ["林澈", "米拉"],
+                "plot_threads": ["PT-001"],
+                "narrative_contract": {
+                    "character_choice_chain": [
+                        {
+                            "character": "林澈",
+                            "goal": "确认震颤记录的来源",
+                            "pressure": "上报会让米拉暴露",
+                            "decision": "暂缓上报，先追查记录背后的规则",
+                            "cost": "承担违规调查风险",
+                            "consequence": "他从旁观者转向主动承担",
+                        }
+                    ],
+                    "plot_thread_progression": [
+                        {
+                            "thread_code": "PT-001",
+                            "previous_status": "open",
+                            "new_status": "developed",
+                            "evidence": "第二份扫描记录与第一章异常互相印证",
+                            "new_question": "震颤为什么只带回短期记忆",
+                        }
+                    ],
+                    "timeline_causality": [
+                        {
+                            "cause_chapter": 1,
+                            "effect_chapter": 2,
+                            "cause": "第一章出现无法解释的震颤记录",
+                            "effect": "米拉带来警告并迫使林澈选择",
+                            "because": "异常记录证明官方解释不完整",
+                        }
+                    ],
+                },
+            }
+        if task == "draft_chapter":
+            return {
+                "summary": "林澈决定承担违规追查的代价。",
+                "content": "米拉把扫描记录递给林澈。因为第一章的异常无法被官方解释，他暂缓上报，选择追查规则。",
+                "referenced_characters": ["林澈", "米拉"],
+                "narrative_contract": user_payload["plan"]["narrative_contract"],
+            }
+        if task == "review_chapter":
+            return {
+                "passed": False,
+                "summary": "需要补强代价。",
+                "issues": [
+                    {
+                        "category": "character_cost",
+                        "message": "林澈的违规代价还不够具体。",
+                        "severity": "warning",
+                    }
+                ],
+            }
+        if task == "revise_chapter":
+            return {
+                "summary": "林澈承担被停职调查的风险。",
+                "content": "米拉把扫描记录递给林澈。因为第一章的异常无法被官方解释，他暂缓上报，并接受可能被停职调查的代价。",
+                "referenced_characters": ["林澈", "米拉"],
+                "narrative_contract": user_payload["chapter"]["narrative_contract"],
+            }
+        raise AssertionError(f"Unexpected task: {task}")
+
+
+class LLMNovelWorkflowTests(unittest.TestCase):
+    def test_llm_workflow_uses_model_outputs_for_plan_draft_review_and_revision(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = NovelWorkflow()
+            project = base.run_seed_project(
+                NovelRequest(
+                    title="星诊所",
+                    premise="一名神经科医生发现震颤中藏着记忆。",
+                    genre="医疗科幻",
+                    style="安静悬疑",
+                ),
+                Path(tmp),
+            )
+            llm = FakeLLMClient()
+            workflow = LLMNovelWorkflow(llm)
+
+            plan = workflow.plan_next_chapter(project)
+            chapter = workflow.draft_next_chapter(project)
+            review = workflow.review_chapter(project, chapter.number)
+            workflow.create_revision_tasks(project, review)
+            revised = workflow.revise_chapter(project, chapter.number)
+
+            self.assertEqual([call["user_payload"]["task"] for call in llm.calls], [
+                "plan_next_chapter",
+                "draft_chapter",
+                "review_chapter",
+                "revise_chapter",
+            ])
+            self.assertEqual(plan.title, "第二章：米拉的警告")
+            self.assertIn("character_choice_chain", plan.narrative_contract)
+            self.assertIn("plot_thread_progression", chapter.narrative_contract)
+            self.assertIn("因为第一章", chapter.content)
+            self.assertFalse(review.passed)
+            self.assertEqual(revised.revision, 1)
+            self.assertIn("停职调查", revised.content)
+
+
+if __name__ == "__main__":
+    unittest.main()

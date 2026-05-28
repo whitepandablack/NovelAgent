@@ -1,25 +1,26 @@
 # NovelAgent
 
-NovelAgent 是一个本地优先的长篇中文小说创作 Agent 框架。当前版本重点建设可测试、可审计的创作工作流：先用确定性 workflow 管理项目状态、章节计划、草稿、审稿和修订，再为后续 LLM provider 与更高层 agent 调度预留接口。
+NovelAgent 是一个长篇中文小说创作 Agent 框架。当前项目同时保留两层能力：
+
+- `NovelWorkflow`：本地确定性 baseline，方便无密钥测试和状态回归。
+- `LLMNovelWorkflow`：大模型写作核心，让 LLM 参与章节规划、正文起草、审稿和修订。
 
 ## 核心能力
 
 - 创建小说项目并保存结构化 JSON 状态。
-- 维护故事圣经、人物卡、卷纲、章纲、世界规则、剧情线索和时间线。
-- 规划下一章并避免重复规划。
-- 根据章节计划起草下一章。
-- 审稿未知人物、重复章节和章纲节拍缺失。
-- 将审稿问题转换为修订任务，并生成修订版章节。
+- 维护故事圣经、人物卡、卷纲、章节纲、世界规则、剧情线和时间线。
+- 使用 LLM 生成章节计划、人物选择链、伏笔推进链、时间线因果链和正文草稿。
+- 使用 LLM 审稿并生成修订任务。
+- 使用 LLM 根据审稿任务重写章节。
 - 导出 Markdown 正文。
+- 运行故事质量 eval，检查结构化状态和能力边界。
 
-## 本地运行
+## 本地 baseline
 
 ```powershell
 $env:PYTHONPATH='src'
 python -m novelagent seed --root sample_projects --title 星诊所 --premise 一名神经科医生发现震颤中藏着记忆。 --genre 医疗科幻 --style 安静悬疑
 ```
-
-## 作家工作台 CLI
 
 ```powershell
 $project='sample_projects/novel/novel_project.json'
@@ -32,7 +33,7 @@ python -m novelagent revise --project $project --chapter 2
 python -m novelagent export --project $project --out manuscript.md
 ```
 
-## 配置
+## LLM 写作核心
 
 LLM 配置只从环境变量读取，不把 API Key 写入源码或文档：
 
@@ -41,7 +42,26 @@ LLM 配置只从环境变量读取，不把 API Key 写入源码或文档：
 - `DASHSCOPE_MODEL`
 - `DASHSCOPE_ENABLE_THINKING`
 
-当前 workflow 不依赖真实 LLM 调用，因此可以在没有密钥的环境中完整运行测试。
+让大模型真正参与规划、起草、审稿和修订：
+
+```powershell
+$env:DASHSCOPE_API_KEY='你的密钥'
+$env:PYTHONPATH='src'
+$project='sample_projects/novel/novel_project.json'
+
+python -m novelagent plan-next --project $project --llm
+python -m novelagent draft-next --project $project --llm
+python -m novelagent review --project $project --chapter 2 --llm
+python -m novelagent revise --project $project --chapter 2 --llm
+```
+
+LLM workflow 会要求模型输出中文 JSON，并包含：
+
+- 人物选择链：目标、压力、决定、代价、后果。
+- 伏笔推进链：线索原状态、新状态、证据、新问题。
+- 时间线因果链：前因、后果、因为/所以关系。
+
+这些结构会保存到章节计划和章节草稿的 `narrative_contract` 字段中，供后续 eval 检查。
 
 ## 测试
 
@@ -52,19 +72,10 @@ python -m unittest discover -s tests -v
 
 ## 故事质量 Eval
 
-第一版 eval 固定使用 `星诊所` 作为基准项目，评测 NovelAgent 是否能在固定故事状态下正确规划、起草和修订。
-
 ```powershell
 $env:PYTHONPATH='src;.'
-python -m evaluation.run_eval --evalset evaluation/evalsets/star_clinic_basic.json --out-dir evaluation/results
+python -m evaluation.run_eval --evalset evaluation/evalsets/star_clinic_dev.json --out-dir evaluation/results/dev
+python -m evaluation.run_eval --evalset evaluation/evalsets/star_clinic_holdout.json --out-dir evaluation/results/holdout
 ```
 
-当前基准包含五类 case：
-
-- `star_clinic_plan_chapter_02`：下一章计划硬约束。
-- `star_clinic_beat_grounding`：检查 beat 是否通过场景行动兑现。
-- `star_clinic_revision_non_regression`：修订后不破坏已有故事状态。
-- `star_clinic_minimal_pairs`：用真/假叙事声明对检查故事记忆。
-- `star_clinic_revision_quality`：检查修订是否重写成小说场景，而不是追加审稿说明。
-
-如果某个 case 暴露当前 agent 的真实短板，命令会返回非零退出码，并在 `evaluation/results/` 写入 JSON 和 Markdown 报告。
+`dev` 用于开发回归，`holdout` 用于记录当前能力边界。holdout 失败不等于测试框架坏了，而是说明 agent 在人物弧线、伏笔推进、因果链或深层叙事判断上仍有待增强。

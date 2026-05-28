@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -45,6 +46,7 @@ class ChapterDraft:
     referenced_characters: list[str] = field(default_factory=list)
     revision: int = 0
     source_plan_number: int | None = None
+    narrative_contract: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -81,6 +83,7 @@ class ChapterPlan:
     beats: list[str] = field(default_factory=list)
     required_characters: list[str] = field(default_factory=list)
     plot_threads: list[str] = field(default_factory=list)
+    narrative_contract: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

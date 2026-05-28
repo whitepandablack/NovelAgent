@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from .llm import OpenAICompatibleClient
+from .llm_workflow import LLMNovelWorkflow
 from .models import NovelRequest
 from .project import NovelProject
 from .workflow import NovelWorkflow
@@ -24,17 +26,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     plan_next = subparsers.add_parser("plan-next", help="规划下一章。")
     plan_next.add_argument("--project", required=True, help="novel_project.json 路径。")
+    plan_next.add_argument("--llm", action="store_true", help="使用大模型规划下一章。")
 
     draft_next = subparsers.add_parser("draft-next", help="起草下一章。")
     draft_next.add_argument("--project", required=True, help="novel_project.json 路径。")
+    draft_next.add_argument("--llm", action="store_true", help="使用大模型起草下一章。")
 
     review = subparsers.add_parser("review", help="审稿指定章节。")
     review.add_argument("--project", required=True, help="novel_project.json 路径。")
     review.add_argument("--chapter", required=True, type=int, help="章节号。")
+    review.add_argument("--llm", action="store_true", help="使用大模型审稿。")
 
     revise = subparsers.add_parser("revise", help="根据审稿任务修订指定章节。")
     revise.add_argument("--project", required=True, help="novel_project.json 路径。")
     revise.add_argument("--chapter", required=True, type=int, help="章节号。")
+    revise.add_argument("--llm", action="store_true", help="使用大模型修订章节。")
 
     export = subparsers.add_parser("export", help="导出正文 Markdown。")
     export.add_argument("--project", required=True, help="novel_project.json 路径。")
@@ -57,9 +63,9 @@ def main(argv: list[str] | None = None) -> int:
         NovelWorkflow().run_seed_project(request, Path(args.root))
         return 0
 
-    workflow = NovelWorkflow()
     try:
         project = _load_project(Path(args.project))
+        workflow = _build_workflow(getattr(args, "llm", False))
         if args.command == "status":
             pending = len([task for task in project.revision_tasks if not task.completed])
             print(
@@ -101,3 +107,9 @@ def _load_project(path: Path) -> NovelProject:
     if not path.exists():
         raise ValueError(f"项目文件不存在：{path}")
     return NovelProject.load(path)
+
+
+def _build_workflow(use_llm: bool):
+    if use_llm:
+        return LLMNovelWorkflow(OpenAICompatibleClient())
+    return NovelWorkflow()
