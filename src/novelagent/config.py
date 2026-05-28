@@ -44,6 +44,7 @@ class LLMConfig:
     top_logprobs: int = 5
     stream: bool = False
     stop_sequences: list[str] | None = None
+    timeout: int = 180
 
     @classmethod
     def from_env(cls) -> "LLMConfig":
@@ -64,6 +65,7 @@ class LLMConfig:
             top_logprobs=_env_int("DASHSCOPE_TOP_LOGPROBS", 5),
             stream=_env_bool("DASHSCOPE_STREAM", False),
             stop_sequences=_env_list("DASHSCOPE_STOP"),
+            timeout=_env_int("DASHSCOPE_TIMEOUT", 180),
         )
 
     def chat_extra_body(self) -> dict[str, bool]:

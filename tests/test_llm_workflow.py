@@ -118,5 +118,91 @@ class LLMNovelWorkflowTests(unittest.TestCase):
             self.assertIn("停职调查", revised.content)
 
 
+class MalformedContractLLMClient:
+    def generate_json(self, *, system_prompt, user_payload):
+        return {
+            "number": 2,
+            "title": "第二章",
+            "goal": "推进线索",
+            "scenes": ["走廊"],
+            "beats": ["证据"],
+            "required_characters": ["林澈"],
+            "plot_threads": ["PT-001"],
+            "narrative_contract": {
+                "plot_thread_progression": ["PT-001 developed"],
+                "timeline_causality": ["因为异常所以追查"],
+            },
+        }
+
+
+class LooseProgressionLLMClient:
+    def generate_json(self, *, system_prompt, user_payload):
+        return {
+            "number": 2,
+            "title": "第二章",
+            "goal": "推进线索",
+            "scenes": ["走廊"],
+            "beats": ["证据"],
+            "required_characters": ["林澈"],
+            "plot_threads": ["PT-001"],
+            "narrative_contract": {
+                "plot_thread_progression": [
+                    {
+                        "thread_code": "PT-001",
+                        "previous_state": "发现异常",
+                        "current_state": "确认系统会掩盖异常",
+                    }
+                ],
+            },
+        }
+
+
+def _test_llm_workflow_ignores_malformed_contract_items(self):
+    with tempfile.TemporaryDirectory() as tmp:
+        project = NovelWorkflow().run_seed_project(
+            NovelRequest(
+                title="星诊所",
+                premise="病历会提前写下尚未发生的症状",
+                genre="近未来悬疑",
+                style="克制",
+            ),
+            Path(tmp),
+        )
+
+        plan = LLMNovelWorkflow(MalformedContractLLMClient()).plan_next_chapter(project)
+
+        self.assertEqual(
+            plan.narrative_contract["plot_thread_progression"],
+            ["PT-001 developed"],
+        )
+
+
+LLMNovelWorkflowTests.test_llm_workflow_ignores_malformed_contract_items = (
+    _test_llm_workflow_ignores_malformed_contract_items
+)
+
+
+def _test_llm_workflow_normalizes_loose_progression_status(self):
+    with tempfile.TemporaryDirectory() as tmp:
+        project = NovelWorkflow().run_seed_project(
+            NovelRequest(
+                title="星诊所",
+                premise="病历会提前写下尚未发生的症状",
+                genre="近未来悬疑",
+                style="克制",
+            ),
+            Path(tmp),
+        )
+
+        LLMNovelWorkflow(LooseProgressionLLMClient()).plan_next_chapter(project)
+
+        self.assertEqual(project.plot_threads[0].status, "developed")
+
+
+LLMNovelWorkflowTests.test_llm_workflow_normalizes_loose_progression_status = (
+    _test_llm_workflow_normalizes_loose_progression_status
+)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -14,9 +14,9 @@ class LLMClient(Protocol):
 
 
 class OpenAICompatibleClient:
-    def __init__(self, config: LLMConfig | None = None, timeout: int = 60):
+    def __init__(self, config: LLMConfig | None = None, timeout: int | None = None):
         self.config = config or LLMConfig.from_env()
-        self.timeout = timeout
+        self.timeout = timeout if timeout is not None else self.config.timeout
 
     def generate_json(self, *, system_prompt: str, user_payload: dict[str, Any]) -> dict[str, Any]:
         if not self.config.api_key:
@@ -47,6 +47,8 @@ class OpenAICompatibleClient:
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 payload = json.loads(response.read().decode("utf-8"))
+        except TimeoutError as exc:
+            raise ValueError(f"大模型请求超时：{self.timeout} 秒。") from exc
         except urllib.error.URLError as exc:
             raise ValueError(f"大模型请求失败：{exc}") from exc
 

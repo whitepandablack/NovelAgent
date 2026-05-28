@@ -249,12 +249,25 @@ class LLMNovelWorkflow:
 
     def _apply_plan_state(self, project: NovelProject, plan: ChapterPlan) -> None:
         for progression in plan.narrative_contract.get("plot_thread_progression", []):
+            if not isinstance(progression, dict):
+                continue
             code = progression.get("thread_code")
             for thread in project.plot_threads:
                 if thread.code == code:
-                    thread.status = progression.get("new_status", thread.status)
+                    thread.status = self._progression_status(progression, thread.status)
                     if plan.number not in thread.related_chapters:
                         thread.related_chapters.append(plan.number)
+
+    def _progression_status(self, progression: dict[str, Any], fallback: str) -> str:
+        explicit = progression.get("new_status") or progression.get("status")
+        if explicit:
+            return str(explicit)
+        if any(
+            progression.get(key)
+            for key in ("current_state", "evidence", "next_step_hint", "new_question")
+        ):
+            return "developed"
+        return fallback
 
     def _timeline_event(
         self,
@@ -267,7 +280,9 @@ class LLMNovelWorkflow:
     ):
         from .models import TimelineEvent
 
-        causal = contract.get("timeline_causality", [])
+        causal = [
+            item for item in contract.get("timeline_causality", []) if isinstance(item, dict)
+        ]
         if causal:
             first = causal[0]
             summary = f"因为{first.get('cause', '')}，所以{first.get('effect', summary)}"

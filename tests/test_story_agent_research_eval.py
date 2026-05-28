@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from evaluation import StoryQualityEvaluator, load_evalset
+from evaluation.run_eval import build_parser
 from evaluation.judges import QwenJudgeResult, QwenStoryJudge
 
 
@@ -214,6 +215,24 @@ class StoryAgentResearchEvalTests(unittest.TestCase):
         self.assertIn("可直接用", survey)
         self.assertIn("只能借鉴", survey)
         self.assertIn("不适合", survey)
+
+    def test_run_eval_parser_accepts_case_id_filter(self):
+        args = build_parser().parse_args(
+            [
+                "--workflow",
+                "llm",
+                "--judge",
+                "qwen",
+                "--evalset",
+                "evaluation/evalsets/story_agent_research_dev.json",
+                "--case-id",
+                "research_nocha_style_minimal_pair",
+                "--out-dir",
+                "evaluation/results/qwen_judge_dev",
+            ]
+        )
+
+        self.assertEqual(args.case_id, "research_nocha_style_minimal_pair")
 
 
 if __name__ == "__main__":

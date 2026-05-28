@@ -25,12 +25,20 @@ def build_parser() -> argparse.ArgumentParser:
         default="none",
         help="软质量 Judge：none 不启用，qwen 使用 DashScope 兼容接口。",
     )
+    parser.add_argument(
+        "--case-id",
+        help="只运行指定 case，便于调试真实 LLM/Judge 链路。",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     cases = load_evalset(Path(args.evalset))
+    if args.case_id:
+        cases = [case for case in cases if case.id == args.case_id]
+        if not cases:
+            raise SystemExit(f"找不到 case-id：{args.case_id}")
     judge = QwenStoryJudge(OpenAICompatibleClient()) if args.judge == "qwen" else None
     reports = StoryQualityEvaluator(
         workflow_mode=args.workflow,

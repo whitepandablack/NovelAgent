@@ -19,6 +19,7 @@ class LLMConfigTests(unittest.TestCase):
         self.assertEqual(config.top_p, 0.9)
         self.assertTrue(config.logprobs)
         self.assertEqual(config.top_logprobs, 5)
+        self.assertEqual(config.timeout, 180)
 
     def test_env_overrides_do_not_require_hardcoded_key(self):
         with patch.dict(
@@ -36,6 +37,7 @@ class LLMConfigTests(unittest.TestCase):
                 "DASHSCOPE_TOP_LOGPROBS": "3",
                 "DASHSCOPE_STREAM": "true",
                 "DASHSCOPE_STOP": "END,STOP",
+                "DASHSCOPE_TIMEOUT": "240",
             },
             clear=True,
         ):
@@ -53,6 +55,7 @@ class LLMConfigTests(unittest.TestCase):
         self.assertEqual(config.top_logprobs, 3)
         self.assertTrue(config.stream)
         self.assertEqual(config.stop_sequences, ["END", "STOP"])
+        self.assertEqual(config.timeout, 240)
 
     def test_chat_body_includes_generation_parameters(self):
         config = LLMConfig(api_key="test-key", stop_sequences=["END"])
