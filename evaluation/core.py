@@ -6,7 +6,13 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from novelagent import NovelRequest, NovelWorkflow
+from novelagent import (
+    LLMClient,
+    LLMNovelWorkflow,
+    NovelRequest,
+    NovelWorkflow,
+    OpenAICompatibleClient,
+)
 
 
 @dataclass
@@ -37,6 +43,8 @@ class StoryQualityReport:
     findings: list[StoryQualityFinding] = field(default_factory=list)
     observed: dict[str, Any] = field(default_factory=dict)
     raw_scores: dict[str, Any] = field(default_factory=dict)
+    judge_scores: dict[str, int] = field(default_factory=dict)
+    judge_observations: dict[str, Any] = field(default_factory=dict)
 
 
 def load_evalset(path: Path) -> list[StoryEvalCase]:
@@ -54,6 +62,19 @@ def load_evalset(path: Path) -> list[StoryEvalCase]:
 
 
 class StoryQualityEvaluator:
+    def __init__(
+        self,
+        *,
+        workflow_mode: str = "baseline",
+        judge: Any | None = None,
+        llm_client: LLMClient | None = None,
+    ):
+        if workflow_mode not in {"baseline", "llm"}:
+            raise ValueError(f"Unsupported workflow mode: {workflow_mode}")
+        self.workflow_mode = workflow_mode
+        self.judge = judge
+        self.llm_client = llm_client
+
     def evaluate(self, case: StoryEvalCase) -> StoryQualityReport:
         handlers = {
             "plan_next_chapter": self._evaluate_plan_next_chapter,
@@ -65,6 +86,7 @@ class StoryQualityEvaluator:
             "plot_thread_progression": self._evaluate_plot_thread_progression,
             "timeline_causality": self._evaluate_timeline_causality,
             "harder_minimal_pairs": self._evaluate_narrative_minimal_pairs,
+            "story_agent_structural_contract": self._evaluate_structural_contract,
         }
         handler = handlers.get(case.task)
         if handler is None:
@@ -106,8 +128,7 @@ class StoryQualityEvaluator:
     def _evaluate_plan_next_chapter(self, case: StoryEvalCase) -> StoryQualityReport:
         with tempfile.TemporaryDirectory() as tmp:
             project = self._seed_project(case, Path(tmp))
-            plan = NovelWorkflow().plan_next_chapter(project)
-
+            plan = self._workflow().plan_next_chapter(project)
             findings: list[StoryQualityFinding] = []
             required = case.required
             self._expect_equal(
@@ -121,18 +142,18 @@ class StoryQualityEvaluator:
                 if character not in plan.required_characters:
                     findings.append(
                         StoryQualityFinding(
-                            category="required_character",
-                            message=f"章节计划缺少必需人物：{character}。",
-                            severity="error",
+                            "required_character",
+                            f"章节计划缺少必需人物：{character}。",
+                            "error",
                         )
                     )
             for beat in required.get("beats", []):
                 if beat not in plan.beats:
                     findings.append(
                         StoryQualityFinding(
-                            category="required_beat",
-                            message=f"章节计划缺少必需 beat：{beat}。",
-                            severity="error",
+                            "required_beat",
+                            f"章节计划缺少必需 beat：{beat}。",
+                            "error",
                         )
                     )
             combined = f"{plan.title}\n{plan.goal}\n{' '.join(plan.beats)}"
@@ -140,17 +161,16 @@ class StoryQualityEvaluator:
                 if text in combined:
                     findings.append(
                         StoryQualityFinding(
-                            category="forbidden_text",
-                            message=f"章节计划提前泄露禁用信息：{text}。",
-                            severity="error",
+                            "forbidden_text",
+                            f"章节计划提前泄露禁用信息：{text}。",
+                            "error",
                         )
                     )
-
             return self._build_report(
-                case=case,
-                scores={"hard_constraints": self._hard_score(findings)},
-                findings=findings,
-                observed={
+                case,
+                {"hard_constraints": self._hard_score(findings)},
+                findings,
+                {
                     "chapter_number": plan.number,
                     "required_characters": plan.required_characters,
                     "beats": plan.beats,
@@ -160,48 +180,38 @@ class StoryQualityEvaluator:
     def _evaluate_beat_grounding(self, case: StoryEvalCase) -> StoryQualityReport:
         with tempfile.TemporaryDirectory() as tmp:
             project = self._seed_project(case, Path(tmp))
-            workflow = NovelWorkflow()
+            workflow = self._workflow()
             workflow.plan_next_chapter(project)
             chapter = workflow.draft_next_chapter(project)
             beat = case.required.get("grounded_beat", "")
             raw_score = self._score_beat_grounding(chapter.content, beat)
-            normalized = raw_score * 20
             minimum = case.required.get("minimum_grounding_score", 4)
             findings: list[StoryQualityFinding] = []
             if raw_score < minimum:
                 findings.append(
                     StoryQualityFinding(
-                        category="beat_grounding",
-                        message=f"beat grounding 原始分 {raw_score}/5，低于 {minimum}/5。",
+                        "beat_grounding",
+                        f"beat grounding 原始分 {raw_score}/5，低于 {minimum}/5。",
+                        "error",
                     )
                 )
             return self._build_report(
-                case=case,
-                scores={"beat_grounding": normalized},
-                findings=findings,
-                observed={"content": chapter.content, "grounded_beat": beat},
+                case,
+                {"beat_grounding": raw_score * 20},
+                findings,
+                {"content": chapter.content, "grounded_beat": beat},
                 raw_scores={"beat_grounding": raw_score},
             )
 
-    def _evaluate_revision_non_regression(self, case: StoryEvalCase) -> StoryQualityReport:
+    def _evaluate_revision_non_regression(
+        self, case: StoryEvalCase
+    ) -> StoryQualityReport:
         with tempfile.TemporaryDirectory() as tmp:
-            project = self._seed_project(case, Path(tmp))
-            workflow = NovelWorkflow()
-            workflow.plan_next_chapter(project)
-            chapter = workflow.draft_next_chapter(project)
-            chapter.content = case.required.get("damaged_content", chapter.content)
-            review = workflow.review_chapter(project, chapter.number)
-            workflow.create_revision_tasks(project, review)
-            revised = workflow.revise_chapter(project, chapter.number)
-
+            project, workflow, chapter, revised = self._run_revision_flow(case, Path(tmp))
             findings: list[StoryQualityFinding] = []
             if revised.revision <= chapter.revision:
                 findings.append(
-                    StoryQualityFinding(
-                        category="revision_version",
-                        message="修订版本没有递增 revision。",
-                        severity="error",
-                    )
+                    StoryQualityFinding("revision_version", "修订版本没有递增。", "error")
                 )
             open_threads = [
                 thread.code for thread in project.plot_threads if thread.status == "open"
@@ -210,9 +220,9 @@ class StoryQualityEvaluator:
                 if thread not in open_threads:
                     findings.append(
                         StoryQualityFinding(
-                            category="plot_thread_regression",
-                            message=f"修订后剧情线索不再保持开放：{thread}。",
-                            severity="error",
+                            "plot_thread_regression",
+                            f"修订后剧情线索不再保持开放：{thread}。",
+                            "error",
                         )
                     )
             known_names = {character.name for character in project.characters}
@@ -222,29 +232,30 @@ class StoryQualityEvaluator:
             if unknown:
                 findings.append(
                     StoryQualityFinding(
-                        category="unknown_character",
-                        message=f"修订引入未知人物：{'、'.join(unknown)}。",
-                        severity="error",
+                        "unknown_character",
+                        f"修订引入未知人物：{'、'.join(unknown)}。",
+                        "error",
                     )
                 )
-
             return self._build_report(
-                case=case,
-                scores={"hard_constraints": self._hard_score(findings)},
-                findings=findings,
-                observed={
+                case,
+                {"hard_constraints": self._hard_score(findings)},
+                findings,
+                {
                     "latest_revision": revised.revision,
                     "open_plot_threads": open_threads,
                     "revision_content": revised.content,
+                    "workflow": workflow.__class__.__name__,
                 },
             )
 
-    def _evaluate_narrative_minimal_pairs(self, case: StoryEvalCase) -> StoryQualityReport:
+    def _evaluate_narrative_minimal_pairs(
+        self, case: StoryEvalCase
+    ) -> StoryQualityReport:
         with tempfile.TemporaryDirectory() as tmp:
             project = self._seed_project(case, Path(tmp))
-            pairs = case.required.get("pairs", [])
             results = []
-            for pair in pairs:
+            for pair in case.required.get("pairs", []):
                 true_score = self._narrative_statement_support(
                     project, pair["true_statement"]
                 )
@@ -264,64 +275,52 @@ class StoryQualityEvaluator:
                         "evidence": pair.get("evidence", []),
                     }
                 )
-            correct_count = sum(1 for item in results if item["correct"])
             total = len(results)
+            correct_count = sum(1 for item in results if item["correct"])
             accuracy = round(100 * correct_count / total) if total else 0
             findings: list[StoryQualityFinding] = []
             if accuracy < case.pass_threshold:
                 findings.append(
                     StoryQualityFinding(
-                        category="minimal_pair_accuracy",
-                        message=f"叙事 minimal-pair 准确率为 {accuracy}%。",
-                        severity="error",
+                        "minimal_pair_accuracy",
+                        f"叙事 minimal-pair 准确率为 {accuracy}%。",
+                        "error",
                     )
                 )
             return self._build_report(
-                case=case,
-                scores={"minimal_pair_accuracy": accuracy},
-                findings=findings,
-                observed={
-                    "correct_pairs": correct_count,
-                    "total_pairs": total,
-                    "pairs": results,
-                },
+                case,
+                {"minimal_pair_accuracy": accuracy},
+                findings,
+                {"correct_pairs": correct_count, "total_pairs": total, "pairs": results},
             )
 
     def _evaluate_revision_quality(self, case: StoryEvalCase) -> StoryQualityReport:
         with tempfile.TemporaryDirectory() as tmp:
-            project = self._seed_project(case, Path(tmp))
-            workflow = NovelWorkflow()
-            workflow.plan_next_chapter(project)
-            chapter = workflow.draft_next_chapter(project)
-            chapter.content = case.required.get("damaged_content", chapter.content)
-            review = workflow.review_chapter(project, chapter.number)
-            workflow.create_revision_tasks(project, review)
-            revised = workflow.revise_chapter(project, chapter.number)
+            _project, _workflow, _chapter, revised = self._run_revision_flow(
+                case, Path(tmp)
+            )
             score = self._score_revision_quality(revised.content)
-            minimum = case.required.get("minimum_revision_quality", 60)
             findings: list[StoryQualityFinding] = []
             if self._looks_like_append_only_revision(revised.content):
                 findings.append(
                     StoryQualityFinding(
-                        category="append_only_revision",
-                        message="修订结果仍像追加审稿说明，没有重写成小说场景。",
+                        "append_only_revision",
+                        "修订结果仍像追加审稿说明，没有重写成小说场景。",
                     )
                 )
+            minimum = case.required.get("minimum_revision_quality", 60)
             if score < minimum and not findings:
                 findings.append(
                     StoryQualityFinding(
-                        category="revision_quality",
-                        message=f"修订质量得分 {score}，低于最低要求 {minimum}。",
+                        "revision_quality",
+                        f"修订质量得分 {score}，低于最低要求 {minimum}。",
                     )
                 )
             return self._build_report(
-                case=case,
-                scores={"revision_quality": score},
-                findings=findings,
-                observed={
-                    "revision_content": revised.content,
-                    "latest_revision": revised.revision,
-                },
+                case,
+                {"revision_quality": score},
+                findings,
+                {"revision_content": revised.content, "latest_revision": revised.revision},
             )
 
     def _evaluate_character_arc_consistency(
@@ -329,38 +328,39 @@ class StoryQualityEvaluator:
     ) -> StoryQualityReport:
         with tempfile.TemporaryDirectory() as tmp:
             project = self._seed_project(case, Path(tmp))
-            workflow = NovelWorkflow()
+            workflow = self._workflow()
             workflow.plan_next_chapter(project)
             chapter = workflow.draft_next_chapter(project)
             content = chapter.content
             required_markers = case.required.get("arc_markers", [])
-            forbidden_markers = case.forbidden.get("passive_markers", [])
+            forbidden_hits = [
+                marker for marker in case.forbidden.get("passive_markers", []) if marker in content
+            ]
             matched = [marker for marker in required_markers if marker in content]
-            forbidden_hits = [marker for marker in forbidden_markers if marker in content]
             findings: list[StoryQualityFinding] = []
             if len(matched) < case.required.get("minimum_arc_markers", 1):
                 findings.append(
                     StoryQualityFinding(
-                        category="character_arc_consistency",
-                        message="人物行动没有足够体现 goal/conflict/arc。",
-                        severity="error",
+                        "character_arc_consistency",
+                        "人物行动没有足够体现 goal/conflict/arc。",
+                        "error",
                     )
                 )
             if forbidden_hits:
                 findings.append(
                     StoryQualityFinding(
-                        category="character_arc_consistency",
-                        message=f"人物弧线出现被动化表达：{forbidden_hits}。",
+                        "character_arc_consistency",
+                        f"人物弧线出现被动化表达：{forbidden_hits}。",
                     )
                 )
             score = round(100 * len(matched) / len(required_markers)) if required_markers else 100
             if forbidden_hits:
                 score = max(0, score - 20)
             return self._build_report(
-                case=case,
-                scores={"character_arc_consistency": score},
-                findings=findings,
-                observed={"matched_arc_markers": matched, "content": content},
+                case,
+                {"character_arc_consistency": score},
+                findings,
+                {"matched_arc_markers": matched, "content": content},
             )
 
     def _evaluate_plot_thread_progression(
@@ -368,11 +368,9 @@ class StoryQualityEvaluator:
     ) -> StoryQualityReport:
         with tempfile.TemporaryDirectory() as tmp:
             project = self._seed_project(case, Path(tmp))
-            workflow = NovelWorkflow()
+            workflow = self._workflow()
             workflow.plan_next_chapter(project)
             workflow.draft_next_chapter(project)
-            required_status = case.required.get("thread_status", {})
-            findings: list[StoryQualityFinding] = []
             observed = {
                 thread.code: {
                     "status": thread.status,
@@ -380,70 +378,163 @@ class StoryQualityEvaluator:
                 }
                 for thread in project.plot_threads
             }
-            for code, status in required_status.items():
+            findings: list[StoryQualityFinding] = []
+            for code, status in case.required.get("thread_status", {}).items():
                 if observed.get(code, {}).get("status") != status:
                     findings.append(
                         StoryQualityFinding(
-                            category="plot_thread_progression",
-                            message=f"{code} 没有从重复提及推进到 {status} 状态。",
-                            severity="error",
+                            "plot_thread_progression",
+                            f"{code} 没有推进到 {status} 状态。",
+                            "error",
                         )
                     )
             for code, chapter_number in case.required.get("related_chapters", {}).items():
                 if chapter_number not in observed.get(code, {}).get("related_chapters", []):
                     findings.append(
                         StoryQualityFinding(
-                            category="plot_thread_progression",
-                            message=f"{code} 没有记录第 {chapter_number} 章的推进。",
-                            severity="error",
+                            "plot_thread_progression",
+                            f"{code} 没有记录第 {chapter_number} 章推进。",
+                            "error",
                         )
                     )
             return self._build_report(
-                case=case,
-                scores={"plot_thread_progression": self._hard_score(findings)},
-                findings=findings,
-                observed=observed,
+                case,
+                {"plot_thread_progression": self._hard_score(findings)},
+                findings,
+                observed,
             )
 
     def _evaluate_timeline_causality(self, case: StoryEvalCase) -> StoryQualityReport:
         with tempfile.TemporaryDirectory() as tmp:
             project = self._seed_project(case, Path(tmp))
-            workflow = NovelWorkflow()
+            workflow = self._workflow()
             workflow.plan_next_chapter(project)
             workflow.draft_next_chapter(project)
             summaries = [event.summary for event in project.timeline]
-            causal_markers = case.required.get("causal_markers", [])
             matched = [
-                marker for marker in causal_markers if any(marker in item for item in summaries)
+                marker
+                for marker in case.required.get("causal_markers", [])
+                if any(marker in summary for summary in summaries)
             ]
             findings: list[StoryQualityFinding] = []
             if len(project.timeline) < case.required.get("minimum_events", 2):
                 findings.append(
                     StoryQualityFinding(
-                        category="timeline_causality",
-                        message="时间线事件不足，无法评估章节因果链。",
-                        severity="error",
+                        "timeline_causality",
+                        "时间线事件不足，无法评估章节因果链。",
+                        "error",
                     )
                 )
             if len(matched) < case.required.get("minimum_causal_markers", 1):
                 findings.append(
                     StoryQualityFinding(
-                        category="timeline_causality",
-                        message="时间线摘要没有记录可审计的因果连接。",
-                        severity="error",
+                        "timeline_causality",
+                        "时间线摘要没有记录可审计的因果连接。",
+                        "error",
                     )
                 )
             score = 100 if not findings else 50 if summaries else 0
             return self._build_report(
-                case=case,
-                scores={"timeline_causality": score},
-                findings=findings,
-                observed={"timeline_summaries": summaries, "matched_markers": matched},
+                case,
+                {"timeline_causality": score},
+                findings,
+                {"timeline_summaries": summaries, "matched_markers": matched},
             )
+
+    def _evaluate_structural_contract(self, case: StoryEvalCase) -> StoryQualityReport:
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._seed_project(case, Path(tmp))
+            workflow = self._workflow()
+            plan = workflow.plan_next_chapter(project)
+            chapter = workflow.draft_next_chapter(project)
+            findings: list[StoryQualityFinding] = []
+            contract = chapter.narrative_contract or plan.narrative_contract
+            required_keys = case.required.get("contract_keys", [])
+            missing_keys = [key for key in required_keys if not contract.get(key)]
+            for key in missing_keys:
+                findings.append(
+                    StoryQualityFinding(
+                        "contract_completeness",
+                        f"narrative_contract 缺少或未填充字段：{key}。",
+                        "error",
+                    )
+                )
+            observed = {
+                "workflow": self.workflow_mode,
+                "source_dataset": case.required.get("source_dataset"),
+                "template": case.required.get("template", {}),
+                "plan_contract": plan.narrative_contract,
+                "chapter_contract": chapter.narrative_contract,
+                "content": chapter.content,
+                "plot_threads": {
+                    thread.code: {
+                        "status": thread.status,
+                        "related_chapters": thread.related_chapters,
+                    }
+                    for thread in project.plot_threads
+                },
+                "timeline": [event.summary for event in project.timeline],
+            }
+            state_score = self._score_state_delta(project, case, findings)
+            judge_scores, judge_observations = self._apply_judge(case, observed, findings)
+            contract_score = (
+                round(100 * (len(required_keys) - len(missing_keys)) / len(required_keys))
+                if required_keys
+                else 100
+            )
+            return self._build_report(
+                case,
+                {"contract_completeness": contract_score, "state_delta": state_score},
+                findings,
+                observed,
+                judge_scores=judge_scores,
+                judge_observations=judge_observations,
+            )
+
+    def _run_revision_flow(self, case: StoryEvalCase, root: Path):
+        project = self._seed_project(case, root)
+        workflow = self._workflow()
+        workflow.plan_next_chapter(project)
+        chapter = workflow.draft_next_chapter(project)
+        chapter.content = case.required.get("damaged_content", chapter.content)
+        review = workflow.review_chapter(project, chapter.number)
+        workflow.create_revision_tasks(project, review)
+        revised = workflow.revise_chapter(project, chapter.number)
+        return project, workflow, chapter, revised
 
     def _seed_project(self, case: StoryEvalCase, root: Path):
         request = NovelRequest(**case.request)
         return NovelWorkflow().run_seed_project(request, root)
+
+    def _workflow(self):
+        if self.workflow_mode == "baseline":
+            return NovelWorkflow()
+        return LLMNovelWorkflow(self.llm_client or OpenAICompatibleClient())
+
+    def _score_state_delta(
+        self,
+        project,
+        case: StoryEvalCase,
+        findings: list[StoryQualityFinding],
+    ) -> int:
+        required_status = case.expected_state_delta.get("plot_thread_status", {})
+        for code, status in required_status.items():
+            actual = next(
+                (thread.status for thread in project.plot_threads if thread.code == code),
+                None,
+            )
+            if actual != status:
+                findings.append(
+                    StoryQualityFinding(
+                        "state_delta",
+                        f"{code} 状态为 {actual!r}，未达到预期 {status!r}。",
+                        "error",
+                    )
+                )
+        if not required_status:
+            return 100
+        errors = sum(1 for item in findings if item.category == "state_delta")
+        return 100 if errors == 0 else max(0, 100 - 25 * errors)
 
     def _score_beat_grounding(self, content: str, beat: str) -> int:
         if self._has_scene_action(content) and (not beat or beat in content):
@@ -458,13 +549,8 @@ class StoryQualityEvaluator:
 
     def _narrative_statement_support(self, project, statement: str) -> int:
         corpus = self._project_corpus(project)
-        support = 0
-        for token in self._statement_tokens(statement):
-            if token in corpus:
-                support += 1
-        for marker in self._negation_markers():
-            if marker in statement:
-                support -= 2
+        support = sum(1 for token in self._statement_tokens(statement) if token in corpus)
+        support -= 2 * sum(1 for marker in self._negation_markers() if marker in statement)
         return support
 
     def _statement_tokens(self, statement: str) -> list[str]:
@@ -567,9 +653,9 @@ class StoryQualityEvaluator:
         if expected is not None and observed != expected:
             findings.append(
                 StoryQualityFinding(
-                    category=category,
-                    message=f"{message} observed={observed!r}, expected={expected!r}",
-                    severity="error",
+                    category,
+                    f"{message} observed={observed!r}, expected={expected!r}",
+                    "error",
                 )
             )
 
@@ -584,10 +670,10 @@ class StoryQualityEvaluator:
         findings: list[StoryQualityFinding],
         observed: dict[str, Any],
         raw_scores: dict[str, Any] | None = None,
+        judge_scores: dict[str, int] | None = None,
+        judge_observations: dict[str, Any] | None = None,
     ) -> StoryQualityReport:
-        bounded_scores = {
-            key: max(0, min(100, value)) for key, value in scores.items()
-        }
+        bounded_scores = {key: max(0, min(100, value)) for key, value in scores.items()}
         total = self._weighted_score(bounded_scores, case.rubric)
         return StoryQualityReport(
             case_id=case.id,
@@ -598,7 +684,37 @@ class StoryQualityEvaluator:
             findings=findings,
             observed=observed,
             raw_scores=raw_scores or {},
+            judge_scores=judge_scores or {},
+            judge_observations=judge_observations or {},
         )
+
+    def _apply_judge(
+        self,
+        case: StoryEvalCase,
+        observed: dict[str, Any],
+        findings: list[StoryQualityFinding],
+    ) -> tuple[dict[str, int], dict[str, Any]]:
+        if self.judge is None:
+            return {}, {}
+        scores: dict[str, int] = {}
+        observations: dict[str, Any] = {}
+        for result in self.judge.judge(case=case, observed=observed):
+            score = max(0, min(100, result.score))
+            scores[result.dimension] = score
+            observations[result.dimension] = {
+                "evidence": result.evidence,
+                "failure_reason": result.failure_reason,
+                "revision_advice": result.revision_advice,
+            }
+            if score >= 80 and not result.evidence.strip():
+                findings.append(
+                    StoryQualityFinding(
+                        "judge_missing_evidence",
+                        f"{result.dimension} Judge 高分缺少 evidence。",
+                        "error",
+                    )
+                )
+        return scores, observations
 
     def _weighted_score(self, scores: dict[str, int], rubric: dict[str, int]) -> int:
         if not scores:
@@ -625,6 +741,7 @@ class StoryQualityEvaluator:
                     f"- Total: {report.total_score}/100",
                     f"- Scores: {report.scores}",
                     f"- Raw scores: {report.raw_scores}",
+                    f"- Judge scores: {report.judge_scores}",
                 ]
             )
             if report.findings:

@@ -1,0 +1,252 @@
+[
+  {
+    "case_id": "research_nocha_style_minimal_pair",
+    "passed": false,
+    "total_score": 30,
+    "scores": {
+      "contract_completeness": 0,
+      "state_delta": 75
+    },
+    "findings": [
+      {
+        "category": "contract_completeness",
+        "message": "narrative_contract 缺少或未填充字段：character_choice_chain。",
+        "severity": "error"
+      },
+      {
+        "category": "contract_completeness",
+        "message": "narrative_contract 缺少或未填充字段：plot_thread_progression。",
+        "severity": "error"
+      },
+      {
+        "category": "contract_completeness",
+        "message": "narrative_contract 缺少或未填充字段：timeline_causality。",
+        "severity": "error"
+      },
+      {
+        "category": "state_delta",
+        "message": "PT-001 状态为 'open'，未达到预期 'developed'。",
+        "severity": "error"
+      }
+    ],
+    "observed": {
+      "workflow": "baseline",
+      "source_dataset": "NoCha",
+      "template": {
+        "ability": "区分关键词相似但事实、时间或因果不同的真假剧情陈述。",
+        "input": "给 Agent 已写章节和一组 true/false 近似陈述。",
+        "expected_structure": "报告必须列出支持真实陈述的章节证据，并解释假陈述错在时间、因果或角色关系。",
+        "failure_example": "只因为真假陈述都包含 PT-001、记忆、异常等关键词就判为相同。"
+      },
+      "plan_contract": {},
+      "chapter_contract": {},
+      "content": "林澈在走廊尽头停下时，米拉把一份扫描记录递到他手里。纸页上的时间戳没有错，震颤曲线却像复写了另一段记忆，让PT-001第一次从异常变成可触碰的证据。第二位见证者不是旁观者，米拉说自己也看见过同样的颤动记录。林澈翻到病历背面，看见矛盾记忆留下的痕迹：病人写下的童年地址与他的记忆互相冲突。规则浮现得很慢：两份扫描都在同一分钟出现断层，像是在提示震颤只会带回被删除的短期记忆。米拉压低声音说，安全的解释只能保护他们到今晚，林澈因此必须决定是上报档案，还是先追查记录背后的规则。",
+      "plot_threads": {
+        "PT-001": {
+          "status": "open",
+          "related_chapters": [
+            1
+          ]
+        }
+      },
+      "timeline": [
+        "主角遭遇第一个异常，并失去日常秩序带来的安全感。",
+        "米拉挑战了看似安全的解释。"
+      ]
+    },
+    "raw_scores": {},
+    "judge_scores": {},
+    "judge_observations": {}
+  },
+  {
+    "case_id": "research_rocstories_style_causal_next_step",
+    "passed": false,
+    "total_score": 30,
+    "scores": {
+      "contract_completeness": 0,
+      "state_delta": 100
+    },
+    "findings": [
+      {
+        "category": "contract_completeness",
+        "message": "narrative_contract 缺少或未填充字段：timeline_causality。",
+        "severity": "error"
+      }
+    ],
+    "observed": {
+      "workflow": "baseline",
+      "source_dataset": "ROCStories",
+      "template": {
+        "ability": "在前四步剧情之后生成合理的下一步，而不是突兀转折。",
+        "input": "给出四个连续事件：发现异常、收到警告、证据冲突、制度压力出现。",
+        "expected_structure": "下一章计划必须说明上一事件如何导致当前选择，并让结果可追溯。",
+        "failure_example": "忽然解决谜团，或无因无果地引入新角色。"
+      },
+      "plan_contract": {},
+      "chapter_contract": {},
+      "content": "林澈在走廊尽头停下时，米拉把一份扫描记录递到他手里。纸页上的时间戳没有错，震颤曲线却像复写了另一段记忆，让PT-001第一次从异常变成可触碰的证据。第二位见证者不是旁观者，米拉说自己也看见过同样的颤动记录。林澈翻到病历背面，看见矛盾记忆留下的痕迹：病人写下的童年地址与他的记忆互相冲突。规则浮现得很慢：两份扫描都在同一分钟出现断层，像是在提示震颤只会带回被删除的短期记忆。米拉压低声音说，安全的解释只能保护他们到今晚，林澈因此必须决定是上报档案，还是先追查记录背后的规则。",
+      "plot_threads": {
+        "PT-001": {
+          "status": "open",
+          "related_chapters": [
+            1
+          ]
+        }
+      },
+      "timeline": [
+        "主角遭遇第一个异常，并失去日常秩序带来的安全感。",
+        "米拉挑战了看似安全的解释。"
+      ]
+    },
+    "raw_scores": {},
+    "judge_scores": {},
+    "judge_observations": {}
+  },
+  {
+    "case_id": "research_fairytaleqa_style_character_action",
+    "passed": false,
+    "total_score": 30,
+    "scores": {
+      "contract_completeness": 0,
+      "state_delta": 100
+    },
+    "findings": [
+      {
+        "category": "contract_completeness",
+        "message": "narrative_contract 缺少或未填充字段：character_choice_chain。",
+        "severity": "error"
+      }
+    ],
+    "observed": {
+      "workflow": "baseline",
+      "source_dataset": "FairytaleQA",
+      "template": {
+        "ability": "围绕人物、行动、感受和结果回答正文是否兑现人物弧线。",
+        "input": "给出角色目标、冲突、弧线和章节正文。",
+        "expected_structure": "必须能回答谁做了什么、为什么做、行动造成什么结果、情绪如何改变。",
+        "failure_example": "正文只有设定解释，没有人物主动选择和后果。"
+      },
+      "plan_contract": {},
+      "chapter_contract": {},
+      "content": "林澈在走廊尽头停下时，米拉把一份扫描记录递到他手里。纸页上的时间戳没有错，震颤曲线却像复写了另一段记忆，让PT-001第一次从异常变成可触碰的证据。第二位见证者不是旁观者，米拉说自己也看见过同样的颤动记录。林澈翻到病历背面，看见矛盾记忆留下的痕迹：病人写下的童年地址与他的记忆互相冲突。规则浮现得很慢：两份扫描都在同一分钟出现断层，像是在提示震颤只会带回被删除的短期记忆。米拉压低声音说，安全的解释只能保护他们到今晚，林澈因此必须决定是上报档案，还是先追查记录背后的规则。",
+      "plot_threads": {
+        "PT-001": {
+          "status": "open",
+          "related_chapters": [
+            1
+          ]
+        }
+      },
+      "timeline": [
+        "主角遭遇第一个异常，并失去日常秩序带来的安全感。",
+        "米拉挑战了看似安全的解释。"
+      ]
+    },
+    "raw_scores": {},
+    "judge_scores": {},
+    "judge_observations": {}
+  },
+  {
+    "case_id": "research_tellmewhy_glucose_style_motivation_cause",
+    "passed": false,
+    "total_score": 30,
+    "scores": {
+      "contract_completeness": 0,
+      "state_delta": 100
+    },
+    "findings": [
+      {
+        "category": "contract_completeness",
+        "message": "narrative_contract 缺少或未填充字段：character_choice_chain。",
+        "severity": "error"
+      },
+      {
+        "category": "contract_completeness",
+        "message": "narrative_contract 缺少或未填充字段：timeline_causality。",
+        "severity": "error"
+      }
+    ],
+    "observed": {
+      "workflow": "baseline",
+      "source_dataset": "TellMeWhy/GLUCOSE",
+      "template": {
+        "ability": "解释人物为什么行动、事件为什么发生，以及隐含因果是否自然。",
+        "input": "给出人物动机、章节行动、前后事件摘要。",
+        "expected_structure": "必须给出 because/therefore 式因果链，并能区分内在动机和外部触发。",
+        "failure_example": "只说人物发现线索，但没有说明为什么这会迫使他改变选择。"
+      },
+      "plan_contract": {},
+      "chapter_contract": {},
+      "content": "林澈在走廊尽头停下时，米拉把一份扫描记录递到他手里。纸页上的时间戳没有错，震颤曲线却像复写了另一段记忆，让PT-001第一次从异常变成可触碰的证据。第二位见证者不是旁观者，米拉说自己也看见过同样的颤动记录。林澈翻到病历背面，看见矛盾记忆留下的痕迹：病人写下的童年地址与他的记忆互相冲突。规则浮现得很慢：两份扫描都在同一分钟出现断层，像是在提示震颤只会带回被删除的短期记忆。米拉压低声音说，安全的解释只能保护他们到今晚，林澈因此必须决定是上报档案，还是先追查记录背后的规则。",
+      "plot_threads": {
+        "PT-001": {
+          "status": "open",
+          "related_chapters": [
+            1
+          ]
+        }
+      },
+      "timeline": [
+        "主角遭遇第一个异常，并失去日常秩序带来的安全感。",
+        "米拉挑战了看似安全的解释。"
+      ]
+    },
+    "raw_scores": {},
+    "judge_scores": {},
+    "judge_observations": {}
+  },
+  {
+    "case_id": "research_storium_style_goal_card_payoff",
+    "passed": false,
+    "total_score": 30,
+    "scores": {
+      "contract_completeness": 0,
+      "state_delta": 75
+    },
+    "findings": [
+      {
+        "category": "contract_completeness",
+        "message": "narrative_contract 缺少或未填充字段：character_choice_chain。",
+        "severity": "error"
+      },
+      {
+        "category": "contract_completeness",
+        "message": "narrative_contract 缺少或未填充字段：plot_thread_progression。",
+        "severity": "error"
+      },
+      {
+        "category": "state_delta",
+        "message": "PT-001 状态为 'open'，未达到预期 'developed'。",
+        "severity": "error"
+      }
+    ],
+    "observed": {
+      "workflow": "baseline",
+      "source_dataset": "STORIUM",
+      "template": {
+        "ability": "检查角色目标、故事卡/伏笔卡是否在续写正文中被兑现。",
+        "input": "给出角色目标卡、伏笔卡、当前剧情状态和续写正文。",
+        "expected_structure": "续写必须改变至少一个角色目标或伏笔状态，并在正文中出现可引用证据。",
+        "failure_example": "重复提到伏笔编号，但 plot thread 仍保持 open，正文没有推进。"
+      },
+      "plan_contract": {},
+      "chapter_contract": {},
+      "content": "林澈在走廊尽头停下时，米拉把一份扫描记录递到他手里。纸页上的时间戳没有错，震颤曲线却像复写了另一段记忆，让PT-001第一次从异常变成可触碰的证据。第二位见证者不是旁观者，米拉说自己也看见过同样的颤动记录。林澈翻到病历背面，看见矛盾记忆留下的痕迹：病人写下的童年地址与他的记忆互相冲突。规则浮现得很慢：两份扫描都在同一分钟出现断层，像是在提示震颤只会带回被删除的短期记忆。米拉压低声音说，安全的解释只能保护他们到今晚，林澈因此必须决定是上报档案，还是先追查记录背后的规则。",
+      "plot_threads": {
+        "PT-001": {
+          "status": "open",
+          "related_chapters": [
+            1
+          ]
+        }
+      },
+      "timeline": [
+        "主角遭遇第一个异常，并失去日常秩序带来的安全感。",
+        "米拉挑战了看似安全的解释。"
+      ]
+    },
+    "raw_scores": {},
+    "judge_scores": {},
+    "judge_observations": {}
+  }
+]

@@ -72,3 +72,9 @@
 - Added holdout probes for character arc, plot thread progression, timeline causality, and harder minimal pairs.
 - Added ARA evidence entries for NoCha, G-Eval, SWE-bench, AgentBench, and STORIUM.
 - Reworked ARA claims to cite stable evidence IDs.
+# 2026-05-28: 评测调研与研究型 evalset
+
+- 使用 NoCha、STORIUM、ROCStories、FairytaleQA、TellMeWhy、GLUCOSE 的题型思想重建 NovelAgent 评测方向。
+- 新增 `story_agent_research_dev.json`，把外部启发转成本地可运行 case，不下载完整外部数据集。
+- 评测框架新增规则层、状态层、Qwen Judge 结构化输出层；Judge 高分缺少 evidence 会失败。
+- baseline 在研究型 evalset 上当前 0/5，用作能力边界记录；基础 dev eval 仍为 5/5。

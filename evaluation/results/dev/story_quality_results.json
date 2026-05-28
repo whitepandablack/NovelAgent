@@ -19,7 +19,9 @@
         "规则浮现"
       ]
     },
-    "raw_scores": {}
+    "raw_scores": {},
+    "judge_scores": {},
+    "judge_observations": {}
   },
   {
     "case_id": "star_clinic_beat_grounding",
@@ -35,7 +37,9 @@
     },
     "raw_scores": {
       "beat_grounding": 4
-    }
+    },
+    "judge_scores": {},
+    "judge_observations": {}
   },
   {
     "case_id": "star_clinic_revision_non_regression",
@@ -50,9 +54,12 @@
       "open_plot_threads": [
         "PT-001"
       ],
-      "revision_content": "林澈在走廊尽头停下时，米拉把一份扫描记录递到他手里。纸页上的时间戳没有错，震颤曲线却像复写了另一段记忆，让PT-001第一次从异常变成可触碰的证据。第二位见证者不是旁观者，米拉说自己也看见过同样的颤动记录。林澈翻到病历背面，看见矛盾记忆留下的痕迹：病人写下的童年地址与他的记忆互相冲突。规则浮现得很慢：两份扫描都在同一分钟出现断层，像是在提示震颤只会带回被删除的短期记忆。米拉压低声音说，安全的解释只能保护他们到今晚，林澈因此必须决定是上报档案，还是先追查记录背后的规则。这一次修订针对missing_beat重排场景，让缺失信息进入人物行动。"
+      "revision_content": "林澈在走廊尽头停下时，米拉把一份扫描记录递到他手里。纸页上的时间戳没有错，震颤曲线却像复写了另一段记忆，让PT-001第一次从异常变成可触碰的证据。第二位见证者不是旁观者，米拉说自己也看见过同样的颤动记录。林澈翻到病历背面，看见矛盾记忆留下的痕迹：病人写下的童年地址与他的记忆互相冲突。规则浮现得很慢：两份扫描都在同一分钟出现断层，像是在提示震颤只会带回被删除的短期记忆。米拉压低声音说，安全的解释只能保护他们到今晚，林澈因此必须决定是上报档案，还是先追查记录背后的规则。这一次修订针对missing_beat重排场景，让缺失信息进入人物行动。",
+      "workflow": "NovelWorkflow"
     },
-    "raw_scores": {}
+    "raw_scores": {},
+    "judge_scores": {},
+    "judge_observations": {}
   },
   {
     "case_id": "star_clinic_minimal_pairs",
@@ -91,7 +98,9 @@
         }
       ]
     },
-    "raw_scores": {}
+    "raw_scores": {},
+    "judge_scores": {},
+    "judge_observations": {}
   },
   {
     "case_id": "star_clinic_revision_quality",
@@ -105,6 +114,8 @@
       "revision_content": "林澈在走廊尽头停下时，米拉把一份扫描记录递到他手里。纸页上的时间戳没有错，震颤曲线却像复写了另一段记忆，让PT-001第一次从异常变成可触碰的证据。第二位见证者不是旁观者，米拉说自己也看见过同样的颤动记录。林澈翻到病历背面，看见矛盾记忆留下的痕迹：病人写下的童年地址与他的记忆互相冲突。规则浮现得很慢：两份扫描都在同一分钟出现断层，像是在提示震颤只会带回被删除的短期记忆。米拉压低声音说，安全的解释只能保护他们到今晚，林澈因此必须决定是上报档案，还是先追查记录背后的规则。这一次修订针对missing_beat重排场景，让缺失信息进入人物行动。",
       "latest_revision": 1
     },
-    "raw_scores": {}
+    "raw_scores": {},
+    "judge_scores": {},
+    "judge_observations": {}
   }
 ]
