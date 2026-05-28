@@ -81,6 +81,27 @@ class CliTests(unittest.TestCase):
         self.assertIsInstance(_build_workflow(False), NovelWorkflow)
         self.assertIsInstance(_build_workflow(True), LLMNovelWorkflow)
 
+    def test_seed_command_accepts_llm_flag(self):
+        parser = __import__("novelagent.cli", fromlist=["build_parser"]).build_parser()
+        args = parser.parse_args(
+            [
+                "seed",
+                "--root",
+                "tmp",
+                "--title",
+                "走马灯星球",
+                "--premise",
+                "文明整体返退",
+                "--genre",
+                "文明退变悬疑",
+                "--style",
+                "危险倒叙",
+                "--llm",
+            ]
+        )
+
+        self.assertTrue(args.llm)
+
     def test_write_command_saves_manual_story_text(self):
         with tempfile.TemporaryDirectory() as tmp:
             main(

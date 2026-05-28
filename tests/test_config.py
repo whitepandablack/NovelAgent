@@ -19,7 +19,7 @@ class LLMConfigTests(unittest.TestCase):
         self.assertEqual(config.top_p, 0.9)
         self.assertTrue(config.logprobs)
         self.assertEqual(config.top_logprobs, 5)
-        self.assertEqual(config.timeout, 180)
+        self.assertEqual(config.timeout, 900)
 
     def test_env_overrides_do_not_require_hardcoded_key(self):
         with patch.dict(

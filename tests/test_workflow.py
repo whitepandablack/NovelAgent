@@ -24,7 +24,8 @@ class NovelWorkflowTests(unittest.TestCase):
             self.assertEqual(len(project.chapter_outlines), 3)
             self.assertEqual(len(project.chapters), 1)
             self.assertEqual(project.chapters[0].number, 1)
-            self.assertIn("不该存在", project.chapters[0].title)
+            self.assertIn("危险", project.chapters[0].title)
+            self.assertNotIn("林澈", project.chapters[0].content)
             self.assertTrue(project.reviews[0].passed)
             self.assertTrue(project.path.exists())
 
@@ -45,8 +46,8 @@ class NovelWorkflowTests(unittest.TestCase):
             self.assertEqual(first_plan.number, 2)
             self.assertEqual(second_plan.number, 2)
             self.assertEqual(len(project.chapter_plans), 1)
-            self.assertIn("林澈", first_plan.required_characters)
-            self.assertIn("米拉", first_plan.required_characters)
+            self.assertIn("主角", first_plan.required_characters)
+            self.assertIn("引路者", first_plan.required_characters)
             self.assertTrue(project.path.exists())
 
     def test_draft_next_chapter_uses_plan_and_records_timeline(self):
@@ -65,7 +66,7 @@ class NovelWorkflowTests(unittest.TestCase):
 
             self.assertEqual(chapter.number, 2)
             self.assertEqual(chapter.source_plan_number, 2)
-            self.assertIn("第二位见证者", chapter.content)
+            self.assertIn("光接触证据", chapter.content)
             self.assertEqual(project.chapters[-1].number, 2)
             self.assertEqual(project.timeline[-1].chapter_number, 2)
 

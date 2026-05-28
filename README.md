@@ -111,7 +111,7 @@ python -m novelagent write --project $project --title "走廊里的纸条" --fro
 - `DASHSCOPE_TOP_LOGPROBS`: `5`
 - `DASHSCOPE_STREAM`: `false`
 - `DASHSCOPE_ENABLE_THINKING`: `true`
-- `DASHSCOPE_TIMEOUT`: `180`
+- `DASHSCOPE_TIMEOUT`: `900`
 
 ## 故事质量 Eval
 

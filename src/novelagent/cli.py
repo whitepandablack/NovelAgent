@@ -20,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     seed.add_argument("--premise", required=True, help="核心设定。")
     seed.add_argument("--genre", required=True, help="题材或市场分类。")
     seed.add_argument("--style", required=True, help="写作风格偏好。")
+    seed.add_argument("--llm", action="store_true", help="使用大模型生成项目骨架和第一章。")
 
     status = subparsers.add_parser("status", help="查看小说项目状态。")
     status.add_argument("--project", required=True, help="novel_project.json 路径。")
@@ -68,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
             genre=args.genre,
             style=args.style,
         )
-        NovelWorkflow().run_seed_project(request, Path(args.root))
+        _build_workflow(args.llm).run_seed_project(request, Path(args.root))
         return 0
 
     try:

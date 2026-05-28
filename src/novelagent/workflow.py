@@ -20,6 +20,8 @@ from .review import ContinuityChecker
 
 
 class NovelWorkflow:
+    """本地 deterministic baseline，只保留通用结构，不内置旧项目人物。"""
+
     def run_seed_project(self, request: NovelRequest, root: Path) -> NovelProject:
         project = NovelProject.create(
             root=root,
@@ -33,7 +35,7 @@ class NovelWorkflow:
         project.volume_outline = self._build_volume_outline(request)
         project.chapter_outlines = self._build_chapter_outlines(request)
         project.world_rules = self._build_world_rules(request)
-        project.plot_threads = self._build_plot_threads()
+        project.plot_threads = self._build_plot_threads(request)
         project.chapters = [self._build_first_chapter(request, project.characters)]
         project.timeline = [
             TimelineEvent(
@@ -43,9 +45,7 @@ class NovelWorkflow:
                 characters=project.chapters[0].referenced_characters,
             )
         ]
-        project.reviews = [
-            ContinuityChecker().review_chapter(project, project.chapters[0])
-        ]
+        project.reviews = [ContinuityChecker().review_chapter(project, project.chapters[0])]
         project.save()
         return project
 
@@ -54,7 +54,6 @@ class NovelWorkflow:
         for plan in project.chapter_plans:
             if plan.number == next_number:
                 return plan
-
         outline = self._outline_for_chapter(project, next_number)
         required_characters = self._required_characters_for_outline(project, outline)
         plot_threads = [thread.code for thread in project.plot_threads if thread.status == "open"]
@@ -73,13 +72,12 @@ class NovelWorkflow:
 
     def draft_next_chapter(self, project: NovelProject) -> ChapterDraft:
         plan = self._next_undrafted_plan(project)
-        content = self._draft_scene_from_plan(plan)
         chapter = ChapterDraft(
             number=plan.number,
             title=plan.title,
             summary=plan.goal,
             scenes=plan.scenes,
-            content=content,
+            content=self._draft_scene_from_plan(plan),
             referenced_characters=plan.required_characters,
             source_plan_number=plan.number,
         )
@@ -130,13 +128,12 @@ class NovelWorkflow:
             report = self.review_chapter(project, chapter_number)
             pending_tasks = self.create_revision_tasks(project, report)
         plan = self._plan_for_chapter(project, chapter_number)
-        revised_content = self._rewrite_scene_for_revision(original, plan, pending_tasks)
         revised = ChapterDraft(
             number=original.number,
             title=original.title,
             summary=original.summary,
             scenes=original.scenes,
-            content=revised_content,
+            content=self._rewrite_scene_for_revision(original, plan, pending_tasks),
             referenced_characters=original.referenced_characters,
             revision=original.revision + 1,
             source_plan_number=original.source_plan_number,
@@ -154,125 +151,109 @@ class NovelWorkflow:
             current = latest_by_number.get(chapter.number)
             if current is None or chapter.revision > current.revision:
                 latest_by_number[chapter.number] = chapter
-
         lines = [f"# {project.title}", ""]
         for number in sorted(latest_by_number):
             chapter = latest_by_number[number]
-            lines.extend(
-                [
-                    f"## 第 {chapter.number} 章：{chapter.title}",
-                    "",
-                    chapter.content,
-                    "",
-                ]
-            )
+            lines.extend([f"## 第 {chapter.number} 章：{chapter.title}", "", chapter.content, ""])
         return "\n".join(lines).rstrip() + "\n"
 
     def _build_story_bible(self, request: NovelRequest) -> StoryBible:
         return StoryBible(
             logline=f"{request.title}: {request.premise}",
-            themes=[
-                "压力下的身份认同",
-                "隐秘知识带来的代价",
-                "真相显现后的选择",
-            ],
+            themes=["危险开场", "真相倒推", "从逃避到主动选择"],
             rules=[
-                "重大揭示必须由前文场景证据铺垫。",
-                "人物选择必须符合已声明的目标与内在冲突。",
-                "每一章至少改变一组人物关系或线索状态。",
+                "重大揭示必须由场景证据铺垫。",
+                "人物选择必须符合目标、冲突和弧线。",
+                "每章至少改变一组关系、线索或时间线状态。",
             ],
             style_notes=[
                 f"主要文风：{request.style}。",
                 f"题材期待：{request.genre}。",
-                "优先使用具体场景行动，避免抽象说明堆叠。",
+                "优先写具体场景行动，避免抽象说明堆叠。",
             ],
         )
 
     def _build_characters(self, request: NovelRequest) -> list[CharacterCard]:
         return [
             CharacterCard(
-                name="林澈",
-                role="主角",
-                goal="理解核心设定背后的谜团。",
-                conflict="职业习惯让他难以面对情感层面的真相。",
-                arc="从冷静旁观者转变为主动承担者。",
+                name="主角",
+                role="视角人物",
+                goal="理解核心设定造成的危险，并活过第一轮选择。",
+                conflict="害怕开启自己的人生，因此习惯把决定推迟。",
+                arc="从不敢开启人生，走向主动接受别人给予的感情。",
             ),
             CharacterCard(
-                name="米拉",
-                role="催化者",
-                goal="迫使主角正视第一个不可能的线索。",
-                conflict="她知道更多真相，却无法安全地全部说出。",
-                arc="从戒备的传信者转变为可信赖的同盟。",
+                name="引路者",
+                role="情感与真相的触发者",
+                goal="让主角看见被隐藏的事实。",
+                conflict="越靠近主角，越可能把危险带给主角。",
+                arc="从远处提醒变成愿意被主角接受的人。",
             ),
             CharacterCard(
-                name="乔主任",
-                role="对抗型导师",
-                goal="维持官方版本的完整性。",
-                conflict="保护秩序的同时可能摧毁真相。",
-                arc="从制度压力的代表转变为矛盾暴露的核心。",
+                name="守门者",
+                role="阻止真相扩散的人",
+                goal="维持现有秩序和安全版本。",
+                conflict="保护秩序的行为会加速危险显形。",
+                arc="从秩序代表变成危险机制的证明。",
             ),
         ]
 
     def _build_volume_outline(self, request: NovelRequest) -> list[OutlineItem]:
         return [
             OutlineItem(
-                title="第一卷：最初的信号",
-                summary="主角以具体事件的形式遭遇核心设定带来的扰动。",
-                beats=["开场异常", "第一位同盟", "错误解释"],
+                title="第一卷：倒着开始",
+                summary="故事从最危险处开场，再倒推危险为何发生。",
+                beats=["危险现场", "错误安全感", "第一次选择"],
             ),
             OutlineItem(
-                title="第二卷：隐藏的系统",
-                summary="主要人物发现异常背后更深层的结构。",
-                beats=["规则显现", "信任破裂", "无法回头的选择"],
+                title="第二卷：光接触之后",
+                summary="人物发现远距离光接触和文明退变之间的因果。",
+                beats=["光的证据", "关系改变", "无法回头"],
             ),
             OutlineItem(
-                title="第三卷：真相的代价",
-                summary="主角通过牺牲解决核心谜团。",
-                beats=["最终反转", "压力下的选择", "新的平衡"],
+                title="第三卷：接受感情",
+                summary="主角必须在文明返退中主动接受他人的感情。",
+                beats=["最终倒转", "主动选择", "新的起点"],
             ),
         ]
 
     def _build_chapter_outlines(self, request: NovelRequest) -> list[OutlineItem]:
         return [
             OutlineItem(
-                title="第一章：不该存在的记录",
-                summary="林澈记录下一个本不该存在的细节。",
-                beats=["日常秩序", "异常线索", "私下怀疑"],
+                title="第一章：最危险的一刻",
+                summary="主角在倒序危险现场第一次看见核心设定。",
+                beats=["危险开场", "核心异常", "不再逃避"],
             ),
             OutlineItem(
-                title="第二章：米拉的警告",
-                summary="米拉挑战了看似安全的解释。",
-                beats=["第二位见证者", "矛盾记忆", "规则浮现"],
+                title="第二章：光的回信",
+                summary="远距离光接触留下证据，文明退变开始显形。",
+                beats=["光接触证据", "信任破裂", "主动靠近"],
             ),
             OutlineItem(
-                title="第三章：乔主任的档案",
-                summary="制度压力重新定义了第一次发现。",
-                beats=["官方否认", "隐藏档案", "危险选择"],
+                title="第三章：倒退的城市",
+                summary="人物关系和世界规则同时发生不可逆变化。",
+                beats=["城市返退", "情感压力", "危险选择"],
             ),
         ]
 
     def _build_world_rules(self, request: NovelRequest) -> list[WorldRule]:
         return [
-            WorldRule(
-                code="WR-001",
-                description=f"核心异常必须围绕设定展开：{request.premise}",
-                source="核心设定",
-            ),
+            WorldRule(code="WR-001", description=request.premise, source="用户设定"),
             WorldRule(
                 code="WR-002",
-                description="每次重大揭示都需要先出现可回溯的场景证据。",
-                source="故事圣经",
+                description="每次重大揭示都需要可回溯的场景证据。",
+                source="故事规则",
             ),
         ]
 
-    def _build_plot_threads(self) -> list[PlotThread]:
+    def _build_plot_threads(self, request: NovelRequest) -> list[PlotThread]:
         return [
             PlotThread(
                 code="PT-001",
-                title="核心异常",
+                title="核心设定的真实原因",
                 status="open",
                 related_chapters=[1],
-                payoff="第三卷解释异常的真实来源。",
+                payoff="解释核心设定如何改变人物和文明的命运。",
             )
         ]
 
@@ -280,22 +261,21 @@ class NovelWorkflow:
         self, request: NovelRequest, characters: list[CharacterCard]
     ) -> ChapterDraft:
         protagonist = characters[0].name
-        catalyst = characters[1].name
-        title = "不该存在的记录"
+        guide = characters[1].name
         content = (
-            f"{protagonist}在一场近乎日常的清晨里开始工作，仍然信任"
-            f"{request.genre}世界中那些看似可靠的工具。这个病例原本毫无危险，"
-            f"直到一个细节呼应了故事的核心设定：{request.premise}"
-            f"{catalyst}在他找到合理解释前赶到，并带来一句警告，"
-            "让第一条线索显得像是被人刻意留下。"
+            f"{protagonist}在最危险的一刻醒来，周围的一切都像熟悉世界的倒影。"
+            f"街道、窗光、人的呼吸都与地球相似，却正按相反的方向退回某个起点。"
+            f"他试图把这一切解释成普通事故，但{request.premise}"
+            f"{guide}留下的信号迫使他承认：安全只是延迟选择的借口。"
+            f"他第一次没有转身离开，而是把那道信号收进掌心，决定继续走下去。"
         )
         return ChapterDraft(
             number=1,
-            title=title,
-            summary="主角遭遇第一个异常，并失去日常秩序带来的安全感。",
-            scenes=["日常开场", "异常线索", "催化者警告"],
+            title="最危险的一刻",
+            summary="主角在倒序危险现场遭遇核心设定，并第一次停止逃避。",
+            scenes=["危险开场", "核心异常", "第一次主动选择"],
             content=content,
-            referenced_characters=[protagonist, catalyst],
+            referenced_characters=[protagonist, guide],
         )
 
     def _next_chapter_number(self, project: NovelProject) -> int:
@@ -308,7 +288,7 @@ class NovelWorkflow:
             return project.chapter_outlines[index]
         return OutlineItem(
             title=f"第{number}章：新的压力",
-            summary="既有线索带来新的行动压力。",
+            summary="已有线索带来新的行动压力。",
             beats=["后果显现", "关系变化", "新的选择"],
         )
 
@@ -316,16 +296,12 @@ class NovelWorkflow:
         self, project: NovelProject, outline: OutlineItem
     ) -> list[str]:
         names = [character.name for character in project.characters]
-        required = []
-        if names:
-            required.append(names[0])
+        required = names[:2]
         required.extend(
             name
             for name in names
             if name not in required and (name in outline.title or name in outline.summary)
         )
-        if len(names) > 1 and names[1] not in required:
-            required.append(names[1])
         return required
 
     def _next_undrafted_plan(self, project: NovelProject) -> ChapterPlan:
@@ -339,36 +315,13 @@ class NovelWorkflow:
         protagonist = plan.required_characters[0] if plan.required_characters else "主角"
         witness = plan.required_characters[1] if len(plan.required_characters) > 1 else protagonist
         thread = plan.plot_threads[0] if plan.plot_threads else "主线"
-        beat_sentences = self._beat_scene_sentences(plan.beats, protagonist, witness)
+        beats = "、".join(plan.beats)
         return (
-            f"{protagonist}在走廊尽头停下时，{witness}把一份扫描记录递到他手里。"
-            f"纸页上的时间戳没有错，震颤曲线却像复写了另一段记忆，"
-            f"让{thread}第一次从异常变成可触碰的证据。"
-            f"{''.join(beat_sentences)}"
-            f"{witness}压低声音说，安全的解释只能保护他们到今晚，"
-            f"{protagonist}因此必须决定是上报档案，还是先追查记录背后的规则。"
+            f"{protagonist}在新的场景里重新确认了{thread}的证据。"
+            f"{witness}没有替他选择，只把能够被验证的细节递到他面前。"
+            f"这一章推进的 beat 是：{beats}。"
+            f"{protagonist}因此必须决定继续逃避，还是主动承担关系和真相带来的后果。"
         )
-
-    def _beat_scene_sentences(
-        self, beats: list[str], protagonist: str, witness: str
-    ) -> list[str]:
-        sentences: list[str] = []
-        for beat in beats:
-            if beat == "第二位见证者":
-                sentences.append(
-                    f"第二位见证者不是旁观者，{witness}说自己也看见过同样的颤动记录。"
-                )
-            elif beat == "矛盾记忆":
-                sentences.append(
-                    f"{protagonist}翻到病历背面，看见矛盾记忆留下的痕迹：病人写下的童年地址与他的记忆互相冲突。"
-                )
-            elif beat == "规则浮现":
-                sentences.append(
-                    "规则浮现得很慢：两份扫描都在同一分钟出现断层，像是在提示震颤只会带回被删除的短期记忆。"
-                )
-            else:
-                sentences.append(f"{beat}不再停留在说明里，而是压进他们眼前的证据。")
-        return sentences
 
     def _plan_for_chapter(
         self, project: NovelProject, chapter_number: int

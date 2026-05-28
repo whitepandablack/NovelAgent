@@ -12,6 +12,74 @@ class FakeLLMClient:
     def generate_json(self, *, system_prompt, user_payload):
         self.calls.append({"system_prompt": system_prompt, "user_payload": user_payload})
         task = user_payload["task"]
+        if task == "seed_project":
+            return {
+                "story_bible": {
+                    "logline": "走马灯星球上的文明从结局向起点返退。",
+                    "themes": ["倒叙危险", "文明返退", "接受感情"],
+                    "rules": ["故事必须倒着展开", "远距离光接触之后文明开始退变"],
+                    "style_notes": ["克制", "危险感强"],
+                },
+                "characters": [
+                    {
+                        "name": "未启者",
+                        "role": "主角",
+                        "description": "模型可能多给的字段",
+                        "goal": "活过倒退文明的最危险开端",
+                        "conflict": "不敢开启自己的人生",
+                        "arc": "从不敢开启人生到主动接受别人的感情",
+                    }
+                ],
+                "volume_outline": [
+                    {
+                        "title": "第一卷：倒着开始的危险",
+                        "summary": "故事从文明退变后的危险现场开始。",
+                        "beats": ["最危险的开场"],
+                    }
+                ],
+                "chapter_outlines": [
+                    {
+                        "title": "第一章：倒亮的星",
+                        "summary": "主角在文明返退现场第一次被迫选择。",
+                        "beats": ["倒序开场", "光接触遗迹", "拒绝逃避"],
+                    }
+                ],
+                "world_rules": [
+                    {
+                        "code": "WR-001",
+                        "description": "文明像走马灯一样整体返退。",
+                        "source": "用户设定",
+                    }
+                ],
+                "plot_threads": [
+                    {
+                        "code": "PT-001",
+                        "title": "走马灯文明返退",
+                        "status": "open",
+                        "related_chapters": [1],
+                        "payoff": "解释光接触之后为何退变。",
+                    }
+                ],
+                "first_chapter": {
+                    "number": 1,
+                    "title": "倒亮的星",
+                    "summary": "主角从最危险的一刻开始面对返退。",
+                    "scenes": ["坠落的光城"],
+                    "content": "星球像地球一样熟悉，却在倒着燃烧。未启者第一次没有逃走。",
+                    "referenced_characters": ["未启者"],
+                    "narrative_contract": {
+                        "character_choice_chain": [
+                            {"character": "未启者", "choice": "留下"}
+                        ],
+                        "plot_thread_progression": [
+                            {"thread_code": "PT-001", "current_state": "危险开场"}
+                        ],
+                        "timeline_causality": [
+                            {"cause": "文明开始返退", "effect": "主角不能再旁观"}
+                        ],
+                    },
+                },
+            }
         if task == "plan_next_chapter":
             return {
                 "number": 2,
@@ -82,6 +150,25 @@ class FakeLLMClient:
 
 
 class LLMNovelWorkflowTests(unittest.TestCase):
+    def test_llm_seed_project_uses_model_outputs_for_first_chapter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            llm = FakeLLMClient()
+            project = LLMNovelWorkflow(llm).run_seed_project(
+                NovelRequest(
+                    title="走马灯星球",
+                    premise="星球和地球无限相似，文明整体返退。",
+                    genre="文明退变悬疑",
+                    style="倒叙，非常危险",
+                ),
+                Path(tmp),
+            )
+
+            self.assertEqual(llm.calls[0]["user_payload"]["task"], "seed_project")
+            self.assertEqual(project.chapters[0].title, "倒亮的星")
+            self.assertIn("走马灯星球", project.story_bible.logline)
+            self.assertIn("character_choice_chain", project.chapters[0].narrative_contract)
+            self.assertNotIn("林澈", project.chapters[0].content)
+
     def test_llm_workflow_uses_model_outputs_for_plan_draft_review_and_revision(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = NovelWorkflow()
