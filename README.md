@@ -76,6 +76,43 @@ $env:PYTHONPATH='src'
 python -m unittest discover -s tests -v
 ```
 
+## 手动写故事并保存
+
+你可以不调用 LLM，直接把自己写的一段正文保存进项目：
+
+```powershell
+$project='sample_projects/novel/novel_project.json'
+python -m novelagent write --project $project --title "走廊里的纸条" --content "这里写你的正文"
+```
+
+保存后会同时写入两个地方：
+
+- 项目状态：`novel_project.json` 的 `chapters` 和 `timeline`
+- 独立正文文件：项目目录下的 `writing/chapter-002-r0.md`
+
+如果正文比较长，可以先写到文件里：
+
+```powershell
+python -m novelagent write --project $project --title "走廊里的纸条" --from-file draft.md
+```
+
+## 当前默认模型参数
+
+当前 LLM 默认使用 DashScope 兼容 OpenAI 接口：
+
+- `DASHSCOPE_MODEL`: `qwen3.7-max`
+- `DASHSCOPE_BASE_URL`: `https://dashscope.aliyuncs.com/compatible-mode/v1`
+- `DASHSCOPE_TEMPERATURE`: `0.1`
+- `DASHSCOPE_MAX_TOKENS`: `4096`
+- `DASHSCOPE_TOP_P`: `0.9`
+- `DASHSCOPE_FREQUENCY_PENALTY`: `0.0`
+- `DASHSCOPE_PRESENCE_PENALTY`: `0.0`
+- `DASHSCOPE_LOGPROBS`: `true`
+- `DASHSCOPE_TOP_LOGPROBS`: `5`
+- `DASHSCOPE_STREAM`: `false`
+- `DASHSCOPE_ENABLE_THINKING`: `true`
+- `DASHSCOPE_TIMEOUT`: `180`
+
 ## 故事质量 Eval
 
 ```powershell

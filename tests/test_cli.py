@@ -4,7 +4,7 @@ from pathlib import Path
 
 from novelagent.cli import main
 from novelagent.cli import _build_workflow
-from novelagent import LLMNovelWorkflow, NovelWorkflow
+from novelagent import LLMNovelWorkflow, NovelProject, NovelWorkflow
 
 
 class CliTests(unittest.TestCase):
@@ -80,6 +80,45 @@ class CliTests(unittest.TestCase):
     def test_build_workflow_can_select_llm_workflow(self):
         self.assertIsInstance(_build_workflow(False), NovelWorkflow)
         self.assertIsInstance(_build_workflow(True), LLMNovelWorkflow)
+
+    def test_write_command_saves_manual_story_text(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            main(
+                [
+                    "seed",
+                    "--root",
+                    tmp,
+                    "--title",
+                    "星诊所",
+                    "--premise",
+                    "病历会提前写下尚未发生的症状",
+                    "--genre",
+                    "近未来悬疑",
+                    "--style",
+                    "克制",
+                ]
+            )
+            project_path = Path(tmp) / "novel" / "novel_project.json"
+
+            exit_code = main(
+                [
+                    "write",
+                    "--project",
+                    str(project_path),
+                    "--title",
+                    "走廊里的纸条",
+                    "--content",
+                    "林澈把纸条夹进病历本，决定暂时不交给系统。",
+                ]
+            )
+
+            project = NovelProject.load(project_path)
+            saved_path = Path(tmp) / "novel" / "writing" / "chapter-002-r0.md"
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(saved_path.exists())
+            self.assertIn("走廊里的纸条", saved_path.read_text(encoding="utf-8"))
+            self.assertEqual(project.chapters[-1].title, "走廊里的纸条")
+            self.assertIn("纸条", project.chapters[-1].content)
 
 
 if __name__ == "__main__":
