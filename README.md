@@ -103,7 +103,7 @@ python -m novelagent write --project $project --title "走廊里的纸条" --fro
 - `DASHSCOPE_MODEL`: `qwen3.7-max`
 - `DASHSCOPE_BASE_URL`: `https://dashscope.aliyuncs.com/compatible-mode/v1`
 - `DASHSCOPE_TEMPERATURE`: `0.1`
-- `DASHSCOPE_MAX_TOKENS`: `4096`
+- `DASHSCOPE_MAX_TOKENS`: `8192`
 - `DASHSCOPE_TOP_P`: `0.9`
 - `DASHSCOPE_FREQUENCY_PENALTY`: `0.0`
 - `DASHSCOPE_PRESENCE_PENALTY`: `0.0`

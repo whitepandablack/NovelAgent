@@ -15,7 +15,7 @@ class LLMConfigTests(unittest.TestCase):
         self.assertTrue(config.enable_thinking)
         self.assertEqual(config.api_key, "")
         self.assertEqual(config.temperature, 0.1)
-        self.assertEqual(config.max_tokens, 4096)
+        self.assertEqual(config.max_tokens, 8192)
         self.assertEqual(config.top_p, 0.9)
         self.assertTrue(config.logprobs)
         self.assertEqual(config.top_logprobs, 5)
@@ -63,7 +63,7 @@ class LLMConfigTests(unittest.TestCase):
         body = config.chat_body_options()
 
         self.assertEqual(body["temperature"], 0.1)
-        self.assertEqual(body["max_tokens"], 4096)
+        self.assertEqual(body["max_tokens"], 8192)
         self.assertEqual(body["top_p"], 0.9)
         self.assertEqual(body["logprobs"], True)
         self.assertEqual(body["top_logprobs"], 5)

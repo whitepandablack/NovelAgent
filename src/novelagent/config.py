@@ -36,7 +36,7 @@ class LLMConfig:
     model_name: str = "qwen3.7-max"
     enable_thinking: bool = True
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_p: float = 0.9
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
@@ -57,7 +57,7 @@ class LLMConfig:
             model_name=os.getenv("DASHSCOPE_MODEL", "qwen3.7-max"),
             enable_thinking=_env_bool("DASHSCOPE_ENABLE_THINKING", True),
             temperature=_env_float("DASHSCOPE_TEMPERATURE", 0.1),
-            max_tokens=_env_int("DASHSCOPE_MAX_TOKENS", 4096),
+            max_tokens=_env_int("DASHSCOPE_MAX_TOKENS", 8192),
             top_p=_env_float("DASHSCOPE_TOP_P", 0.9),
             frequency_penalty=_env_float("DASHSCOPE_FREQUENCY_PENALTY", 0.0),
             presence_penalty=_env_float("DASHSCOPE_PRESENCE_PENALTY", 0.0),
