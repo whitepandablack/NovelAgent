@@ -33,8 +33,8 @@ class OpenAICompatibleClient:
                 },
             ],
             "response_format": {"type": "json_object"},
-            "extra_body": self.config.chat_extra_body(),
         }
+        body.update(self.config.chat_body_options())
         request = urllib.request.Request(
             endpoint,
             data=json.dumps(body, ensure_ascii=False).encode("utf-8"),

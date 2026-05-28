@@ -55,6 +55,12 @@ python -m novelagent review --project $project --chapter 2 --llm
 python -m novelagent revise --project $project --chapter 2 --llm
 ```
 
+默认模型是 `qwen3.7-max`。需要切换模型时设置：
+
+```powershell
+$env:DASHSCOPE_MODEL='qwen3.7-max'
+```
+
 LLM workflow 会要求模型输出中文 JSON，并包含：
 
 - 人物选择链：目标、压力、决定、代价、后果。
