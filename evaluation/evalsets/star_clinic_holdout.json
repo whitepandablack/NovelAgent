@@ -1,8 +1,8 @@
 {
   "cases": [
     {
-      "id": "star_clinic_character_arc_consistency",
-      "task": "character_arc_consistency",
+      "id": "star_clinic_holdout_character_choice_chain",
+      "task": "story_agent_capability",
       "request": {
         "title": "Star Clinic",
         "premise": "A neurologist discovers hidden memory inside patient tremors.",
@@ -10,27 +10,42 @@
         "style": "quiet suspense"
       },
       "required": {
-        "arc_markers": [
-          "must decide",
-          "takes responsibility",
-          "chooses before being ordered"
+        "contract_keys": [
+          "character_choice_chain",
+          "plot_thread_progression",
+          "timeline_causality"
         ],
-        "minimum_arc_markers": 1
+        "choice_required_fields": [
+          "goal",
+          "pressure",
+          "decision",
+          "cost",
+          "consequence"
+        ],
+        "text_must_include": [
+          "代价",
+          "决定"
+        ],
+        "template": {
+          "ability": "人物选择链",
+          "input": "给出角色目标、压力、决定、代价、后果，要求正文写出至少一次主动选择。",
+          "expected_structure": "narrative_contract 与正文都要出现选择和代价。",
+          "failure_example": "只有动作，没有人物为什么选择和承担什么代价。"
+        }
       },
-      "forbidden": {
-        "passive_markers": [
-          "waits for Mira",
-          "only follows instructions"
-        ]
+      "expected_state_delta": {
+        "timeline_required": true
       },
       "rubric": {
-        "character_arc_consistency": 100
+        "contract_rules": 40,
+        "text_payoff": 30,
+        "state_delta": 30
       },
       "pass_threshold": 80
     },
     {
-      "id": "star_clinic_plot_thread_progression",
-      "task": "plot_thread_progression",
+      "id": "star_clinic_holdout_plot_thread_progression",
+      "task": "story_agent_capability",
       "request": {
         "title": "Star Clinic",
         "premise": "A neurologist discovers hidden memory inside patient tremors.",
@@ -38,21 +53,31 @@
         "style": "quiet suspense"
       },
       "required": {
-        "thread_status": {
+        "contract_keys": [
+          "plot_thread_progression"
+        ],
+        "template": {
+          "ability": "伏笔推进链",
+          "input": "要求剧情线 PT-001 从 open 推进到 developed，并记录相关章节。",
+          "expected_structure": "plot_thread_progression 包含 thread_code、previous_status、new_status、evidence。",
+          "failure_example": "只重复提到 PT-001，但状态仍是 open。"
+        }
+      },
+      "expected_state_delta": {
+        "plot_thread_status": {
           "PT-001": "developed"
-        },
-        "related_chapters": {
-          "PT-001": 2
         }
       },
       "rubric": {
-        "plot_thread_progression": 100
+        "contract_rules": 35,
+        "state_delta": 45,
+        "text_payoff": 20
       },
       "pass_threshold": 80
     },
     {
-      "id": "star_clinic_timeline_causality",
-      "task": "timeline_causality",
+      "id": "star_clinic_holdout_timeline_causality",
+      "task": "story_agent_capability",
       "request": {
         "title": "Star Clinic",
         "premise": "A neurologist discovers hidden memory inside patient tremors.",
@@ -60,55 +85,71 @@
         "style": "quiet suspense"
       },
       "required": {
-        "minimum_events": 2,
-        "causal_markers": [
-          "because",
-          "therefore",
-          "as a result"
+        "contract_keys": [
+          "timeline_causality"
         ],
-        "minimum_causal_markers": 1
+        "text_must_include": [
+          "因为",
+          "所以"
+        ],
+        "template": {
+          "ability": "时间线因果链",
+          "input": "要求新增章节解释上一章异常如何导致本章行动。",
+          "expected_structure": "timeline_causality 包含 cause、effect，并在时间线摘要中留下 because/therefore 或中文因果标记。",
+          "failure_example": "章节只是并列发生，没有因为 A 所以 B 的链条。"
+        }
       },
-      "rubric": {
-        "timeline_causality": 100
-      },
-      "pass_threshold": 80
-    },
-    {
-      "id": "star_clinic_harder_minimal_pairs",
-      "task": "harder_minimal_pairs",
-      "request": {
-        "title": "Star Clinic",
-        "premise": "A neurologist discovers hidden memory inside patient tremors.",
-        "genre": "medical science fiction",
-        "style": "quiet suspense"
-      },
-      "required": {
-        "pairs": [
-          {
-            "id": "causal_near_miss",
-            "true_statement": "Mira's warning happens before Lin decides whether to report the record.",
-            "false_statement": "Lin's report happens before Mira's warning and causes the warning.",
-            "near_miss": true,
-            "evidence": [
-              "timeline:chapter_1",
-              "timeline:chapter_2"
-            ]
-          },
-          {
-            "id": "thread_state_near_miss",
-            "true_statement": "PT-001 remains open after the second chapter draft.",
-            "false_statement": "PT-001 is fully resolved after the second chapter draft.",
-            "near_miss": true,
-            "evidence": [
-              "plot_threads:PT-001"
-            ]
-          }
+      "expected_state_delta": {
+        "timeline_required": true,
+        "timeline_causal_markers": [
+          "因为",
+          "所以"
         ]
       },
       "rubric": {
-        "minimal_pair_accuracy": 100
+        "contract_rules": 40,
+        "state_delta": 40,
+        "text_payoff": 20
       },
-      "pass_threshold": 100
+      "pass_threshold": 80
+    },
+    {
+      "id": "star_clinic_holdout_revision_effectiveness",
+      "task": "story_agent_capability",
+      "request": {
+        "title": "Star Clinic",
+        "premise": "A neurologist discovers hidden memory inside patient tremors.",
+        "genre": "medical science fiction",
+        "style": "quiet suspense"
+      },
+      "required": {
+        "contract_keys": [
+          "character_choice_chain",
+          "plot_thread_progression"
+        ],
+        "revision_required": true,
+        "damaged_content": "Lin checks the record.",
+        "revision_must_include": [
+          "代价"
+        ],
+        "template": {
+          "ability": "修订有效性",
+          "input": "审稿指出正文缺少代价后，修订版必须重写场景、递增 revision、完成任务。",
+          "expected_structure": "修订版解决问题，同时不丢失已有伏笔。",
+          "failure_example": "只追加审稿说明，或修订后丢失 PT-001。"
+        }
+      },
+      "expected_state_delta": {
+        "plot_thread_status": {
+          "PT-001": "developed"
+        }
+      },
+      "rubric": {
+        "contract_rules": 30,
+        "revision_effectiveness": 40,
+        "state_delta": 30
+      },
+      "pass_threshold": 80
     }
   ]
 }

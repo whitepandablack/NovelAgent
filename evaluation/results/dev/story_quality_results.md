@@ -1,36 +1,41 @@
-# Story Quality Eval Results
+# 小说 Agent 质量评测结果
 
-## star_clinic_plan_chapter_02: PASS
+## star_clinic_plan_chapter_02: 通过
 
-- Total: 100/100
-- Scores: {'hard_constraints': 100}
-- Raw scores: {}
-- Judge scores: {}
+- 总分：100/100
+- 规则层分数：{'hard_constraints': 100}
+- 状态变化层分数：{}
+- Judge 层分数：{}
+- 原始指标：{}
 
-## star_clinic_beat_grounding: PASS
+## star_clinic_beat_grounding: 通过
 
-- Total: 80/100
-- Scores: {'beat_grounding': 80}
-- Raw scores: {'beat_grounding': 4}
-- Judge scores: {}
+- 总分：80/100
+- 规则层分数：{'beat_grounding': 80}
+- 状态变化层分数：{}
+- Judge 层分数：{}
+- 原始指标：{'beat_grounding': 4}
 
-## star_clinic_revision_non_regression: PASS
+## star_clinic_revision_non_regression: 通过
 
-- Total: 100/100
-- Scores: {'hard_constraints': 100}
-- Raw scores: {}
-- Judge scores: {}
+- 总分：100/100
+- 规则层分数：{'hard_constraints': 100}
+- 状态变化层分数：{}
+- Judge 层分数：{}
+- 原始指标：{}
 
-## star_clinic_minimal_pairs: PASS
+## star_clinic_minimal_pairs: 通过
 
-- Total: 100/100
-- Scores: {'minimal_pair_accuracy': 100}
-- Raw scores: {}
-- Judge scores: {}
+- 总分：100/100
+- 规则层分数：{'minimal_pair_accuracy': 100}
+- 状态变化层分数：{}
+- Judge 层分数：{}
+- 原始指标：{}
 
-## star_clinic_revision_quality: PASS
+## star_clinic_revision_quality: 通过
 
-- Total: 80/100
-- Scores: {'revision_quality': 80}
-- Raw scores: {}
-- Judge scores: {}
+- 总分：80/100
+- 规则层分数：{'revision_quality': 80}
+- 状态变化层分数：{}
+- Judge 层分数：{}
+- 原始指标：{}

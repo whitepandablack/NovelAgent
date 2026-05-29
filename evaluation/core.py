@@ -15,6 +15,12 @@ from novelagent import (
 )
 
 
+CHOICE_ALIASES = {
+    "decision": ("decision", "choice", "action"),
+    "pressure": ("pressure", "conflict", "risk"),
+}
+
+
 @dataclass
 class StoryEvalCase:
     id: str
@@ -42,8 +48,10 @@ class StoryQualityReport:
     scores: dict[str, int]
     findings: list[StoryQualityFinding] = field(default_factory=list)
     observed: dict[str, Any] = field(default_factory=dict)
-    raw_scores: dict[str, Any] = field(default_factory=dict)
+    rule_scores: dict[str, int] = field(default_factory=dict)
+    state_scores: dict[str, int] = field(default_factory=dict)
     judge_scores: dict[str, int] = field(default_factory=dict)
+    raw_scores: dict[str, Any] = field(default_factory=dict)
     judge_observations: dict[str, Any] = field(default_factory=dict)
 
 
@@ -59,6 +67,234 @@ def load_evalset(path: Path) -> list[StoryEvalCase]:
     else:
         raw_cases = data
     return [StoryEvalCase(**item) for item in raw_cases]
+
+
+def score_contract_rules(
+    contract: dict[str, Any],
+    required: dict[str, Any],
+    findings: list[StoryQualityFinding],
+) -> dict[str, int]:
+    required_keys = required.get("contract_keys", [])
+    missing_keys = [key for key in required_keys if not contract.get(key)]
+    for key in missing_keys:
+        findings.append(
+            StoryQualityFinding(
+                "contract_rules",
+                f"narrative_contract 缺少或未填充字段：{key}。",
+                "error",
+            )
+        )
+
+    key_score = (
+        round(100 * (len(required_keys) - len(missing_keys)) / len(required_keys))
+        if required_keys
+        else 100
+    )
+
+    chain = _as_list(contract.get("character_choice_chain"))
+    choice_fields = required.get(
+        "choice_required_fields",
+        ["goal", "pressure", "decision", "cost", "consequence"],
+    )
+    choice_errors = 0
+    if "character_choice_chain" in required_keys or choice_fields:
+        if not chain:
+            choice_errors += len(choice_fields) or 1
+            findings.append(
+                StoryQualityFinding("contract_rules", "人物选择链为空。", "error")
+            )
+        for index, item in enumerate(chain):
+            if not isinstance(item, dict):
+                choice_errors += 1
+                findings.append(
+                    StoryQualityFinding(
+                        "contract_rules",
+                        f"人物选择链第 {index + 1} 项不是对象。",
+                        "error",
+                    )
+                )
+                continue
+            missing = [
+                field_name
+                for field_name in choice_fields
+                if not _contract_value(item, field_name)
+            ]
+            if missing:
+                choice_errors += len(missing)
+                findings.append(
+                    StoryQualityFinding(
+                        "contract_rules",
+                        f"人物选择链第 {index + 1} 项缺少：{', '.join(missing)}。",
+                        "error",
+                    )
+                )
+
+    progression = _as_list(contract.get("plot_thread_progression"))
+    progression_errors = 0
+    if "plot_thread_progression" in required_keys:
+        if not progression:
+            progression_errors += 1
+            findings.append(
+                StoryQualityFinding("contract_rules", "伏笔推进链为空。", "error")
+            )
+        for index, item in enumerate(progression):
+            if not isinstance(item, dict):
+                progression_errors += 1
+                findings.append(
+                    StoryQualityFinding(
+                        "contract_rules",
+                        f"伏笔推进链第 {index + 1} 项不是对象。",
+                        "error",
+                    )
+                )
+                continue
+            if not item.get("thread_code"):
+                progression_errors += 1
+                findings.append(
+                    StoryQualityFinding("contract_rules", "伏笔推进缺少 thread_code。", "error")
+                )
+            if not any(
+                item.get(key)
+                for key in ("new_status", "status", "current_state", "evidence")
+            ):
+                progression_errors += 1
+                findings.append(
+                    StoryQualityFinding("contract_rules", "伏笔推进缺少阶段变化证据。", "error")
+                )
+
+    causality = _as_list(contract.get("timeline_causality"))
+    causality_errors = 0
+    if "timeline_causality" in required_keys:
+        if not causality:
+            causality_errors += 1
+            findings.append(
+                StoryQualityFinding("contract_rules", "时间线因果链为空。", "error")
+            )
+        for index, item in enumerate(causality):
+            if not isinstance(item, dict):
+                causality_errors += 1
+                findings.append(
+                    StoryQualityFinding(
+                        "contract_rules",
+                        f"时间线因果链第 {index + 1} 项不是对象。",
+                        "error",
+                    )
+                )
+                continue
+            if not (item.get("cause") and item.get("effect")):
+                causality_errors += 1
+                findings.append(
+                    StoryQualityFinding(
+                        "contract_rules",
+                        "时间线因果链必须同时包含 cause 和 effect。",
+                        "error",
+                    )
+                )
+
+    structural_errors = choice_errors + progression_errors + causality_errors
+    structural_score = max(0, 100 - 20 * structural_errors)
+    return {
+        "contract_rules": round((key_score + structural_score) / 2),
+        "contract_completeness": key_score,
+    }
+
+
+def score_state_delta(
+    *,
+    project: Any,
+    case: StoryEvalCase,
+    timeline_before: int,
+    findings: list[StoryQualityFinding],
+) -> dict[str, int]:
+    required_status = case.expected_state_delta.get("plot_thread_status", {})
+    status_errors = 0
+    for code, expected in required_status.items():
+        actual = next(
+            (thread.status for thread in project.plot_threads if thread.code == code),
+            None,
+        )
+        if actual != expected:
+            status_errors += 1
+            findings.append(
+                StoryQualityFinding(
+                    "state_delta",
+                    f"{code} 状态为 {actual!r}，未达到预期 {expected!r}。",
+                    "error",
+                )
+            )
+    plot_thread_score = 100 if not status_errors else max(0, 100 - 35 * status_errors)
+
+    timeline_markers = case.expected_state_delta.get("timeline_causal_markers", [])
+    new_events = project.timeline[timeline_before:]
+    summaries = [event.summary for event in new_events]
+    timeline_score = 100
+    if case.expected_state_delta.get("timeline_required", bool(timeline_markers)):
+        if not new_events:
+            timeline_score = 0
+            findings.append(
+                StoryQualityFinding("state_delta", "时间线没有新增章节事件。", "error")
+            )
+        elif timeline_markers and not any(
+            all(marker in summary for marker in timeline_markers)
+            for summary in summaries
+        ):
+            timeline_score = 50
+            findings.append(
+                StoryQualityFinding(
+                    "state_delta",
+                    f"新增时间线没有同时包含因果标记：{timeline_markers}。",
+                    "error",
+                )
+            )
+
+    return {
+        "state_delta": round((plot_thread_score + timeline_score) / 2),
+        "plot_thread_state": plot_thread_score,
+        "timeline_state": timeline_score,
+    }
+
+
+def score_revision_effectiveness(
+    *,
+    original: Any | None,
+    revised: Any | None,
+    project: Any,
+    required: dict[str, Any],
+    findings: list[StoryQualityFinding],
+) -> dict[str, int]:
+    if not required.get("revision_required"):
+        return {"revision_effectiveness": 100}
+    if original is None or revised is None:
+        findings.append(
+            StoryQualityFinding("revision_effectiveness", "要求修订，但未执行修订流程。", "error")
+        )
+        return {"revision_effectiveness": 0}
+
+    score = 100
+    if revised.revision <= original.revision:
+        score -= 35
+        findings.append(
+            StoryQualityFinding("revision_effectiveness", "修订版本号没有递增。", "error")
+        )
+    incomplete = [
+        task for task in project.revision_tasks if task.target_chapter == revised.number and not task.completed
+    ]
+    if incomplete:
+        score -= 35
+        findings.append(
+            StoryQualityFinding("revision_effectiveness", "存在未完成的修订任务。", "error")
+        )
+    for text in required.get("revision_must_include", []):
+        if text not in revised.content:
+            score -= 20
+            findings.append(
+                StoryQualityFinding(
+                    "revision_effectiveness",
+                    f"修订正文没有兑现要求文本：{text}。",
+                    "error",
+                )
+            )
+    return {"revision_effectiveness": max(0, score)}
 
 
 class StoryQualityEvaluator:
@@ -81,12 +317,13 @@ class StoryQualityEvaluator:
             "draft_next_chapter_grounding": self._evaluate_beat_grounding,
             "revision_non_regression": self._evaluate_revision_non_regression,
             "narrative_minimal_pairs": self._evaluate_narrative_minimal_pairs,
+            "harder_minimal_pairs": self._evaluate_narrative_minimal_pairs,
             "revision_quality": self._evaluate_revision_quality,
             "character_arc_consistency": self._evaluate_character_arc_consistency,
             "plot_thread_progression": self._evaluate_plot_thread_progression,
             "timeline_causality": self._evaluate_timeline_causality,
-            "harder_minimal_pairs": self._evaluate_narrative_minimal_pairs,
-            "story_agent_structural_contract": self._evaluate_structural_contract,
+            "story_agent_structural_contract": self._evaluate_story_agent_capability,
+            "story_agent_capability": self._evaluate_story_agent_capability,
         }
         handler = handlers.get(case.task)
         if handler is None:
@@ -95,6 +332,7 @@ class StoryQualityEvaluator:
                 passed=False,
                 total_score=0,
                 scores={"unsupported_task": 0},
+                rule_scores={"unsupported_task": 0},
                 findings=[
                     StoryQualityFinding(
                         category="unsupported_task",
@@ -167,10 +405,11 @@ class StoryQualityEvaluator:
                         )
                     )
             return self._build_report(
-                case,
-                {"hard_constraints": self._hard_score(findings)},
-                findings,
-                {
+                case=case,
+                rule_scores={"hard_constraints": self._hard_score(findings)},
+                state_scores={},
+                findings=findings,
+                observed={
                     "chapter_number": plan.number,
                     "required_characters": plan.required_characters,
                     "beats": plan.beats,
@@ -196,10 +435,11 @@ class StoryQualityEvaluator:
                     )
                 )
             return self._build_report(
-                case,
-                {"beat_grounding": raw_score * 20},
-                findings,
-                {"content": chapter.content, "grounded_beat": beat},
+                case=case,
+                rule_scores={"beat_grounding": raw_score * 20},
+                state_scores={},
+                findings=findings,
+                observed={"content": chapter.content, "grounded_beat": beat},
                 raw_scores={"beat_grounding": raw_score},
             )
 
@@ -238,10 +478,11 @@ class StoryQualityEvaluator:
                     )
                 )
             return self._build_report(
-                case,
-                {"hard_constraints": self._hard_score(findings)},
-                findings,
-                {
+                case=case,
+                rule_scores={"hard_constraints": self._hard_score(findings)},
+                state_scores={},
+                findings=findings,
+                observed={
                     "latest_revision": revised.revision,
                     "open_plot_threads": open_threads,
                     "revision_content": revised.content,
@@ -288,10 +529,11 @@ class StoryQualityEvaluator:
                     )
                 )
             return self._build_report(
-                case,
-                {"minimal_pair_accuracy": accuracy},
-                findings,
-                {"correct_pairs": correct_count, "total_pairs": total, "pairs": results},
+                case=case,
+                rule_scores={"minimal_pair_accuracy": accuracy},
+                state_scores={},
+                findings=findings,
+                observed={"correct_pairs": correct_count, "total_pairs": total, "pairs": results},
             )
 
     def _evaluate_revision_quality(self, case: StoryEvalCase) -> StoryQualityReport:
@@ -317,10 +559,11 @@ class StoryQualityEvaluator:
                     )
                 )
             return self._build_report(
-                case,
-                {"revision_quality": score},
-                findings,
-                {"revision_content": revised.content, "latest_revision": revised.revision},
+                case=case,
+                rule_scores={"revision_quality": score},
+                state_scores={},
+                findings=findings,
+                observed={"revision_content": revised.content, "latest_revision": revised.revision},
             )
 
     def _evaluate_character_arc_consistency(
@@ -357,10 +600,11 @@ class StoryQualityEvaluator:
             if forbidden_hits:
                 score = max(0, score - 20)
             return self._build_report(
-                case,
-                {"character_arc_consistency": score},
-                findings,
-                {"matched_arc_markers": matched, "content": content},
+                case=case,
+                rule_scores={"character_arc_consistency": score},
+                state_scores={},
+                findings=findings,
+                observed={"matched_arc_markers": matched, "content": content},
             )
 
     def _evaluate_plot_thread_progression(
@@ -371,13 +615,7 @@ class StoryQualityEvaluator:
             workflow = self._workflow()
             workflow.plan_next_chapter(project)
             workflow.draft_next_chapter(project)
-            observed = {
-                thread.code: {
-                    "status": thread.status,
-                    "related_chapters": thread.related_chapters,
-                }
-                for thread in project.plot_threads
-            }
+            observed = self._plot_thread_observed(project)
             findings: list[StoryQualityFinding] = []
             for code, status in case.required.get("thread_status", {}).items():
                 if observed.get(code, {}).get("status") != status:
@@ -398,10 +636,11 @@ class StoryQualityEvaluator:
                         )
                     )
             return self._build_report(
-                case,
-                {"plot_thread_progression": self._hard_score(findings)},
-                findings,
-                observed,
+                case=case,
+                rule_scores={},
+                state_scores={"plot_thread_progression": self._hard_score(findings)},
+                findings=findings,
+                observed=observed,
             )
 
     def _evaluate_timeline_causality(self, case: StoryEvalCase) -> StoryQualityReport:
@@ -435,30 +674,49 @@ class StoryQualityEvaluator:
                 )
             score = 100 if not findings else 50 if summaries else 0
             return self._build_report(
-                case,
-                {"timeline_causality": score},
-                findings,
-                {"timeline_summaries": summaries, "matched_markers": matched},
+                case=case,
+                rule_scores={},
+                state_scores={"timeline_causality": score},
+                findings=findings,
+                observed={"timeline_summaries": summaries, "matched_markers": matched},
             )
 
-    def _evaluate_structural_contract(self, case: StoryEvalCase) -> StoryQualityReport:
+    def _evaluate_story_agent_capability(
+        self, case: StoryEvalCase
+    ) -> StoryQualityReport:
         with tempfile.TemporaryDirectory() as tmp:
             project = self._seed_project(case, Path(tmp))
             workflow = self._workflow()
+            timeline_before = len(project.timeline)
             plan = workflow.plan_next_chapter(project)
             chapter = workflow.draft_next_chapter(project)
+            revised = None
+            if case.required.get("revision_required"):
+                chapter.content = case.required.get("damaged_content", chapter.content)
+                review = workflow.review_chapter(project, chapter.number)
+                workflow.create_revision_tasks(project, review)
+                revised = workflow.revise_chapter(project, chapter.number)
+
             findings: list[StoryQualityFinding] = []
             contract = chapter.narrative_contract or plan.narrative_contract
-            required_keys = case.required.get("contract_keys", [])
-            missing_keys = [key for key in required_keys if not contract.get(key)]
-            for key in missing_keys:
-                findings.append(
-                    StoryQualityFinding(
-                        "contract_completeness",
-                        f"narrative_contract 缺少或未填充字段：{key}。",
-                        "error",
-                    )
-                )
+            rule_scores = score_contract_rules(contract, case.required, findings)
+            text_score = self._score_text_payoff(chapter.content, contract, case, findings)
+            rule_scores["text_payoff"] = text_score
+            state_scores = score_state_delta(
+                project=project,
+                case=case,
+                timeline_before=timeline_before,
+                findings=findings,
+            )
+            revision_scores = score_revision_effectiveness(
+                original=chapter,
+                revised=revised,
+                project=project,
+                required=case.required,
+                findings=findings,
+            )
+            state_scores.update(revision_scores)
+
             observed = {
                 "workflow": self.workflow_mode,
                 "source_dataset": case.required.get("source_dataset"),
@@ -466,28 +724,18 @@ class StoryQualityEvaluator:
                 "plan_contract": plan.narrative_contract,
                 "chapter_contract": chapter.narrative_contract,
                 "content": chapter.content,
-                "plot_threads": {
-                    thread.code: {
-                        "status": thread.status,
-                        "related_chapters": thread.related_chapters,
-                    }
-                    for thread in project.plot_threads
-                },
+                "revised_content": getattr(revised, "content", None),
+                "plot_threads": self._plot_thread_observed(project),
                 "timeline": [event.summary for event in project.timeline],
             }
-            state_score = self._score_state_delta(project, case, findings)
             judge_scores, judge_observations = self._apply_judge(case, observed, findings)
-            contract_score = (
-                round(100 * (len(required_keys) - len(missing_keys)) / len(required_keys))
-                if required_keys
-                else 100
-            )
             return self._build_report(
-                case,
-                {"contract_completeness": contract_score, "state_delta": state_score},
-                findings,
-                observed,
+                case=case,
+                rule_scores=rule_scores,
+                state_scores=state_scores,
                 judge_scores=judge_scores,
+                findings=findings,
+                observed=observed,
                 judge_observations=judge_observations,
             )
 
@@ -511,30 +759,35 @@ class StoryQualityEvaluator:
             return NovelWorkflow()
         return LLMNovelWorkflow(self.llm_client or OpenAICompatibleClient())
 
-    def _score_state_delta(
+    def _score_text_payoff(
         self,
-        project,
+        content: str,
+        contract: dict[str, Any],
         case: StoryEvalCase,
         findings: list[StoryQualityFinding],
     ) -> int:
-        required_status = case.expected_state_delta.get("plot_thread_status", {})
-        for code, status in required_status.items():
-            actual = next(
-                (thread.status for thread in project.plot_threads if thread.code == code),
-                None,
-            )
-            if actual != status:
-                findings.append(
-                    StoryQualityFinding(
-                        "state_delta",
-                        f"{code} 状态为 {actual!r}，未达到预期 {status!r}。",
-                        "error",
-                    )
+        required_texts = list(case.required.get("text_must_include", []))
+        for item in _as_list(contract.get("character_choice_chain")):
+            if isinstance(item, dict):
+                for field_name in ("decision", "choice", "cost", "consequence"):
+                    value = item.get(field_name)
+                    if isinstance(value, str) and value and len(value) <= 24:
+                        required_texts.append(value)
+        required_texts = list(dict.fromkeys(required_texts))
+        if not required_texts:
+            return 100 if content else 0
+        hits = [text for text in required_texts if text in content]
+        score = round(100 * len(hits) / len(required_texts))
+        if score < case.required.get("text_payoff_minimum", 60):
+            missing = [text for text in required_texts if text not in content]
+            findings.append(
+                StoryQualityFinding(
+                    "text_payoff",
+                    f"正文没有兑现结构链中的具体内容：{missing[:5]}。",
+                    "error",
                 )
-        if not required_status:
-            return 100
-        errors = sum(1 for item in findings if item.category == "state_delta")
-        return 100 if errors == 0 else max(0, 100 - 25 * errors)
+            )
+        return score
 
     def _score_beat_grounding(self, content: str, beat: str) -> int:
         if self._has_scene_action(content) and (not beat or beat in content):
@@ -566,15 +819,14 @@ class StoryQualityEvaluator:
             "Lin",
             "PT-001",
             "WR-001",
-            "米拉",
-            "更多真相",
-            "无法安全",
+            "主角",
+            "引路者",
+            "记忆",
             "震颤",
-            "隐藏记忆",
-            "核心异常",
-            "乔主任",
-            "第一章",
-            "真实来源",
+            "异常",
+            "光接触",
+            "退变",
+            "倒退",
         ]
         return [token for token in candidates if token in statement]
 
@@ -588,6 +840,7 @@ class StoryQualityEvaluator:
             "完全解决",
             "真实来源",
             "公开解释",
+            "fully explained",
         ]
 
     def _project_corpus(self, project) -> str:
@@ -635,6 +888,7 @@ class StoryQualityEvaluator:
             "证据",
             "递到",
             "低声",
+            "决定",
             "said",
             "asked",
             "record",
@@ -665,26 +919,36 @@ class StoryQualityEvaluator:
 
     def _build_report(
         self,
+        *,
         case: StoryEvalCase,
-        scores: dict[str, int],
+        rule_scores: dict[str, int],
+        state_scores: dict[str, int],
         findings: list[StoryQualityFinding],
         observed: dict[str, Any],
         raw_scores: dict[str, Any] | None = None,
         judge_scores: dict[str, int] | None = None,
         judge_observations: dict[str, Any] | None = None,
     ) -> StoryQualityReport:
-        bounded_scores = {key: max(0, min(100, value)) for key, value in scores.items()}
-        total = self._weighted_score(bounded_scores, case.rubric)
+        bounded_rules = self._bound_scores(rule_scores)
+        bounded_state = self._bound_scores(state_scores)
+        bounded_judge = self._bound_scores(judge_scores or {})
+        combined_scores = {**bounded_rules, **bounded_state, **bounded_judge}
+        total_inputs = {**bounded_rules, **bounded_state}
+        if not total_inputs:
+            total_inputs = combined_scores
+        total = self._weighted_score(total_inputs, case.rubric)
         return StoryQualityReport(
             case_id=case.id,
             passed=not any(item.severity == "error" for item in findings)
             and total >= case.pass_threshold,
             total_score=max(0, min(100, total)),
-            scores=bounded_scores,
+            scores=combined_scores,
             findings=findings,
             observed=observed,
+            rule_scores=bounded_rules,
+            state_scores=bounded_state,
+            judge_scores=bounded_judge,
             raw_scores=raw_scores or {},
-            judge_scores=judge_scores or {},
             judge_observations=judge_observations or {},
         )
 
@@ -696,17 +960,54 @@ class StoryQualityEvaluator:
     ) -> tuple[dict[str, int], dict[str, Any]]:
         if self.judge is None:
             return {}, {}
+        try:
+            results = self.judge.judge(case=case, observed=observed)
+        except ValueError as exc:
+            findings.append(
+                StoryQualityFinding("judge_schema", f"Judge 结构化输出无效：{exc}", "error")
+            )
+            return {}, {"schema_error": str(exc)}
+        except Exception as exc:
+            findings.append(
+                StoryQualityFinding(
+                    "judge_runtime",
+                    f"Judge 调用失败：{exc.__class__.__name__}: {exc}",
+                    "error",
+                )
+            )
+            return {}, {"runtime_error": f"{exc.__class__.__name__}: {exc}"}
+
         scores: dict[str, int] = {}
         observations: dict[str, Any] = {}
-        for result in self.judge.judge(case=case, observed=observed):
-            score = max(0, min(100, result.score))
-            scores[result.dimension] = score
-            observations[result.dimension] = {
-                "evidence": result.evidence,
-                "failure_reason": result.failure_reason,
-                "revision_advice": result.revision_advice,
+        for result in results:
+            missing = [
+                name
+                for name in (
+                    "dimension",
+                    "score",
+                    "evidence",
+                    "failure_reason",
+                    "revision_advice",
+                )
+                if not hasattr(result, name)
+            ]
+            if missing:
+                findings.append(
+                    StoryQualityFinding(
+                        "judge_schema",
+                        f"Judge result 缺少字段：{', '.join(missing)}。",
+                        "error",
+                    )
+                )
+                continue
+            score = max(0, min(100, int(result.score)))
+            scores[str(result.dimension)] = score
+            observations[str(result.dimension)] = {
+                "evidence": str(result.evidence),
+                "failure_reason": str(result.failure_reason),
+                "revision_advice": str(result.revision_advice),
             }
-            if score >= 80 and not result.evidence.strip():
+            if score >= 80 and not str(result.evidence).strip():
                 findings.append(
                     StoryQualityFinding(
                         "judge_missing_evidence",
@@ -727,28 +1028,73 @@ class StoryQualityEvaluator:
         weighted = sum(scores[key] * rubric.get(key, 0) for key in scores)
         return round(weighted / total_weight)
 
+    def _bound_scores(self, scores: dict[str, int]) -> dict[str, int]:
+        return {key: max(0, min(100, int(value))) for key, value in scores.items()}
+
+    def _plot_thread_observed(self, project) -> dict[str, Any]:
+        return {
+            thread.code: {
+                "status": thread.status,
+                "related_chapters": thread.related_chapters,
+                "payoff": thread.payoff,
+            }
+            for thread in project.plot_threads
+        }
+
     def _report_to_dict(self, report: StoryQualityReport) -> dict[str, Any]:
         return asdict(report)
 
     def _reports_to_markdown(self, reports: list[StoryQualityReport]) -> str:
-        lines = ["# Story Quality Eval Results", ""]
+        lines = ["# 小说 Agent 质量评测结果", ""]
         for report in reports:
-            status = "PASS" if report.passed else "FAIL"
+            status = "通过" if report.passed else "未通过"
             lines.extend(
                 [
                     f"## {report.case_id}: {status}",
                     "",
-                    f"- Total: {report.total_score}/100",
-                    f"- Scores: {report.scores}",
-                    f"- Raw scores: {report.raw_scores}",
-                    f"- Judge scores: {report.judge_scores}",
+                    f"- 总分：{report.total_score}/100",
+                    f"- 规则层分数：{report.rule_scores}",
+                    f"- 状态变化层分数：{report.state_scores}",
+                    f"- Judge 层分数：{report.judge_scores}",
+                    f"- 原始指标：{report.raw_scores}",
                 ]
             )
+            if report.judge_observations:
+                lines.append("- Judge 证据与建议：")
+                for dimension, item in report.judge_observations.items():
+                    if dimension == "schema_error":
+                        lines.append(f"  - schema_error：{item}")
+                        continue
+                    if dimension == "runtime_error":
+                        lines.append(f"  - runtime_error：{item}")
+                        continue
+                    lines.append(
+                        "  - "
+                        f"{dimension}：证据={item.get('evidence', '')}；"
+                        f"失败原因={item.get('failure_reason', '')}；"
+                        f"修订建议={item.get('revision_advice', '')}"
+                    )
             if report.findings:
-                lines.append("- Findings:")
+                lines.append("- 失败原因：")
                 for finding in report.findings:
                     lines.append(
                         f"  - [{finding.severity}] {finding.category}: {finding.message}"
                     )
             lines.append("")
         return "\n".join(lines)
+
+
+def _as_list(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def _contract_value(item: dict[str, Any], field_name: str) -> Any:
+    for key in CHOICE_ALIASES.get(field_name, (field_name,)):
+        value = item.get(key)
+        if value:
+            return value
+    return None

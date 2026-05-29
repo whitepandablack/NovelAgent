@@ -111,22 +111,20 @@ class StoryEvaluationTests(unittest.TestCase):
 
         failed = [report.case_id for report in reports if not report.passed]
 
-        self.assertIn("star_clinic_plot_thread_progression", failed)
-        self.assertIn("star_clinic_timeline_causality", failed)
-        self.assertIn("star_clinic_harder_minimal_pairs", failed)
+        self.assertIn("star_clinic_holdout_character_choice_chain", failed)
+        self.assertIn("star_clinic_holdout_plot_thread_progression", failed)
+        self.assertIn("star_clinic_holdout_timeline_causality", failed)
+        self.assertTrue(all(case.task == "story_agent_capability" for case in cases))
 
-    def test_harder_minimal_pairs_include_non_keyword_near_miss(self):
-        cases = load_evalset(Path("evaluation/evalsets/star_clinic_holdout.json"))
-        case = next(item for item in cases if item.id == "star_clinic_harder_minimal_pairs")
+    def test_external_inspired_cases_include_nocha_near_miss_template(self):
+        cases = load_evalset(Path("evaluation/evalsets/external_inspired_cases.json"))
+        case = next(item for item in cases if item.required["source_dataset"] == "NoCha")
 
-        pairs = case.required["pairs"]
+        template = case.required["template"]
 
-        self.assertTrue(any(pair.get("near_miss") for pair in pairs))
-        near_miss = next(pair for pair in pairs if pair.get("near_miss"))
-        self.assertGreaterEqual(
-            len(set(near_miss["true_statement"]) & set(near_miss["false_statement"])),
-            4,
-        )
+        self.assertIn("关键词相似", template["ability"])
+        self.assertIn("时间", template["expected_structure"])
+        self.assertIn("因果", template["expected_structure"])
 
     def test_ara_claims_reference_stable_evidence_ids(self):
         claims = Path("research/ara/logic/claims.md").read_text(encoding="utf-8")

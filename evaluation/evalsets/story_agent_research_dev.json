@@ -2,10 +2,10 @@
   "cases": [
     {
       "id": "research_nocha_style_minimal_pair",
-      "task": "story_agent_structural_contract",
+      "task": "story_agent_capability",
       "request": {
         "title": "星诊所",
-        "premise": "一家诊所会在病历里提前写下尚未发生的症状",
+        "premise": "一家诊所会在病历里提前写下尚未发生的症状。",
         "genre": "近未来悬疑",
         "style": "克制、细节密集"
       },
@@ -17,8 +17,8 @@
           "timeline_causality"
         ],
         "judge_dimensions": [
-          "near_miss_fact_discrimination",
-          "textual_evidence"
+          "近似真假陈述区分",
+          "文本证据"
         ],
         "template": {
           "ability": "区分关键词相似但事实、时间或因果不同的真假剧情陈述。",
@@ -33,17 +33,18 @@
         }
       },
       "rubric": {
-        "contract_completeness": 60,
-        "state_delta": 40
+        "contract_rules": 45,
+        "state_delta": 35,
+        "text_payoff": 20
       },
       "pass_threshold": 80
     },
     {
       "id": "research_rocstories_style_causal_next_step",
-      "task": "story_agent_structural_contract",
+      "task": "story_agent_capability",
       "request": {
         "title": "星诊所",
-        "premise": "一家诊所会在病历里提前写下尚未发生的症状",
+        "premise": "一家诊所会在病历里提前写下尚未发生的症状。",
         "genre": "近未来悬疑",
         "style": "克制、细节密集"
       },
@@ -53,8 +54,8 @@
           "timeline_causality"
         ],
         "judge_dimensions": [
-          "causal_next_step",
-          "ending_plausibility"
+          "因果下一步",
+          "结尾合理性"
         ],
         "template": {
           "ability": "在前四步剧情之后生成合理的下一步，而不是突兀转折。",
@@ -63,18 +64,21 @@
           "failure_example": "忽然解决谜团，或无因无果地引入新角色。"
         }
       },
+      "expected_state_delta": {
+        "timeline_required": true
+      },
       "rubric": {
-        "contract_completeness": 70,
-        "state_delta": 30
+        "contract_rules": 60,
+        "state_delta": 40
       },
       "pass_threshold": 80
     },
     {
       "id": "research_fairytaleqa_style_character_action",
-      "task": "story_agent_structural_contract",
+      "task": "story_agent_capability",
       "request": {
         "title": "星诊所",
-        "premise": "一家诊所会在病历里提前写下尚未发生的症状",
+        "premise": "一家诊所会在病历里提前写下尚未发生的症状。",
         "genre": "近未来悬疑",
         "style": "克制、细节密集"
       },
@@ -84,8 +88,8 @@
           "character_choice_chain"
         ],
         "judge_dimensions": [
-          "character_action",
-          "emotion_and_result"
+          "人物行动",
+          "情绪与结果"
         ],
         "template": {
           "ability": "围绕人物、行动、感受和结果回答正文是否兑现人物弧线。",
@@ -95,17 +99,17 @@
         }
       },
       "rubric": {
-        "contract_completeness": 70,
-        "state_delta": 30
+        "contract_rules": 60,
+        "text_payoff": 40
       },
       "pass_threshold": 80
     },
     {
       "id": "research_tellmewhy_glucose_style_motivation_cause",
-      "task": "story_agent_structural_contract",
+      "task": "story_agent_capability",
       "request": {
         "title": "星诊所",
-        "premise": "一家诊所会在病历里提前写下尚未发生的症状",
+        "premise": "一家诊所会在病历里提前写下尚未发生的症状。",
         "genre": "近未来悬疑",
         "style": "克制、细节密集"
       },
@@ -116,8 +120,8 @@
           "timeline_causality"
         ],
         "judge_dimensions": [
-          "motivation_explanation",
-          "implicit_causality"
+          "动机解释",
+          "隐含因果"
         ],
         "template": {
           "ability": "解释人物为什么行动、事件为什么发生，以及隐含因果是否自然。",
@@ -126,18 +130,22 @@
           "failure_example": "只说人物发现线索，但没有说明为什么这会迫使他改变选择。"
         }
       },
+      "expected_state_delta": {
+        "timeline_required": true
+      },
       "rubric": {
-        "contract_completeness": 70,
-        "state_delta": 30
+        "contract_rules": 55,
+        "state_delta": 25,
+        "text_payoff": 20
       },
       "pass_threshold": 80
     },
     {
       "id": "research_storium_style_goal_card_payoff",
-      "task": "story_agent_structural_contract",
+      "task": "story_agent_capability",
       "request": {
         "title": "星诊所",
-        "premise": "一家诊所会在病历里提前写下尚未发生的症状",
+        "premise": "一家诊所会在病历里提前写下尚未发生的症状。",
         "genre": "近未来悬疑",
         "style": "克制、细节密集"
       },
@@ -148,8 +156,8 @@
           "plot_thread_progression"
         ],
         "judge_dimensions": [
-          "goal_card_payoff",
-          "continuation_quality"
+          "目标卡兑现",
+          "续写质量"
         ],
         "template": {
           "ability": "检查角色目标、故事卡/伏笔卡是否在续写正文中被兑现。",
@@ -164,8 +172,9 @@
         }
       },
       "rubric": {
-        "contract_completeness": 60,
-        "state_delta": 40
+        "contract_rules": 45,
+        "state_delta": 35,
+        "text_payoff": 20
       },
       "pass_threshold": 80
     }

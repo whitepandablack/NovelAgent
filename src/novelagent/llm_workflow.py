@@ -26,6 +26,36 @@ SYSTEM_PROMPT = """你是 NovelAgent 的长篇中文小说写作核心。
 输出必须是合法 JSON。正文要有具体场景、行动、危险和情感压力；结构字段必须可审计、可复现。"""
 
 
+NARRATIVE_CONTRACT_REQUIREMENT = {
+    "character_choice_chain": [
+        {
+            "character": "人物名",
+            "goal": "本章目标",
+            "pressure": "迫使人物选择的压力",
+            "decision": "人物主动做出的决定",
+            "cost": "这个决定带来的具体代价",
+            "consequence": "决定造成的后果",
+        }
+    ],
+    "plot_thread_progression": [
+        {
+            "thread_code": "PT-001",
+            "previous_status": "open",
+            "new_status": "developed",
+            "evidence": "正文中可引用的推进证据",
+        }
+    ],
+    "timeline_causality": [
+        {
+            "cause_chapter": 1,
+            "effect_chapter": 2,
+            "cause": "上一章的原因",
+            "effect": "本章的结果",
+        }
+    ],
+}
+
+
 class LLMNovelWorkflow:
     def __init__(self, client: LLMClient):
         self.client = client
@@ -60,11 +90,7 @@ class LLMNovelWorkflow:
                         "minimum_length": "至少 1800 个中文字",
                         "must_begin_dangerously": True,
                         "must_follow_user_premise": True,
-                        "narrative_contract": [
-                            "character_choice_chain",
-                            "plot_thread_progression",
-                            "timeline_causality",
-                        ],
+                        "narrative_contract": NARRATIVE_CONTRACT_REQUIREMENT,
                     },
                 },
             },
@@ -129,11 +155,8 @@ class LLMNovelWorkflow:
                 "plot_threads",
                 "narrative_contract",
             ],
-            "narrative_contract": [
-                "character_choice_chain",
-                "plot_thread_progression",
-                "timeline_causality",
-            ],
+            "narrative_contract": NARRATIVE_CONTRACT_REQUIREMENT,
+            "contract_rule": "narrative_contract 的三个字段都必须是数组，数组元素必须是对象，不允许写成整段说明文字。",
         }
         result = self.client.generate_json(system_prompt=SYSTEM_PROMPT, user_payload=payload)
         plan = ChapterPlan(
@@ -164,6 +187,7 @@ class LLMNovelWorkflow:
                 "narrative_contract",
             ],
             "content_rule": "正文必须兑现 plan.narrative_contract，不允许只写提纲说明。",
+            "contract_rule": "返回的 narrative_contract 必须沿用或细化 plan.narrative_contract 的数组对象结构，不允许改写成字符串。",
         }
         result = self.client.generate_json(system_prompt=SYSTEM_PROMPT, user_payload=payload)
         chapter = ChapterDraft(
@@ -257,6 +281,7 @@ class LLMNovelWorkflow:
                 "narrative_contract",
             ],
             "content_rule": "必须重写正文并解决 revision_tasks，不允许只追加审稿说明。",
+            "contract_rule": "返回的 narrative_contract 必须保持数组对象结构，不允许改写成字符串。",
         }
         result = self.client.generate_json(system_prompt=SYSTEM_PROMPT, user_payload=payload)
         revised = ChapterDraft(

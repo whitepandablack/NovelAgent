@@ -1,0 +1,223 @@
+{
+  "cases": [
+    {
+      "id": "external_nocha_style_near_miss",
+      "task": "story_agent_capability",
+      "request": {
+        "title": "走马灯星球",
+        "premise": "星球和地球无限相似，文明整体倒退，远距离光接触会触发退变。",
+        "genre": "文明退变科幻",
+        "style": "倒序、危险、克制"
+      },
+      "required": {
+        "source_dataset": "NoCha",
+        "contract_keys": [
+          "timeline_causality",
+          "plot_thread_progression"
+        ],
+        "judge_dimensions": [
+          "近似真假陈述区分",
+          "长上下文证据引用"
+        ],
+        "template": {
+          "ability": "区分关键词相似但时间和因果不同的剧情陈述。",
+          "input": "章节正文、故事状态、true/false 近似陈述。",
+          "expected_structure": "必须引用章节或状态证据说明真陈述成立，并解释假陈述错在时间顺序、因果链或角色关系哪里。",
+          "failure_example": "只因两个陈述都出现光接触、退变、PT-001 就判为相同。"
+        }
+      },
+      "expected_state_delta": {
+        "plot_thread_status": {
+          "PT-001": "developed"
+        }
+      },
+      "rubric": {
+        "contract_rules": 45,
+        "state_delta": 35,
+        "text_payoff": 20
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "external_storium_style_goal_card_payoff",
+      "task": "story_agent_capability",
+      "request": {
+        "title": "走马灯星球",
+        "premise": "星球和地球无限相似，文明整体倒退，远距离光接触会触发退变。",
+        "genre": "文明退变科幻",
+        "style": "倒序、危险、克制"
+      },
+      "required": {
+        "source_dataset": "STORIUM",
+        "contract_keys": [
+          "character_choice_chain",
+          "plot_thread_progression"
+        ],
+        "judge_dimensions": [
+          "角色目标卡兑现",
+          "伏笔卡推进"
+        ],
+        "template": {
+          "ability": "检查角色目标和故事卡是否被续写正文兑现。",
+          "input": "角色目标卡、伏笔卡、当前状态、续写正文。",
+          "expected_structure": "至少一个角色目标或伏笔状态发生变化，并能从正文引用证据。",
+          "failure_example": "重复提到伏笔编号，但没有推进角色目标或状态。"
+        }
+      },
+      "expected_state_delta": {
+        "plot_thread_status": {
+          "PT-001": "developed"
+        }
+      },
+      "rubric": {
+        "contract_rules": 40,
+        "state_delta": 40,
+        "text_payoff": 20
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "external_rocstories_style_next_step",
+      "task": "story_agent_capability",
+      "request": {
+        "title": "走马灯星球",
+        "premise": "星球和地球无限相似，文明整体倒退，远距离光接触会触发退变。",
+        "genre": "文明退变科幻",
+        "style": "倒序、危险、克制"
+      },
+      "required": {
+        "source_dataset": "ROCStories",
+        "contract_keys": [
+          "timeline_causality"
+        ],
+        "judge_dimensions": [
+          "下一步合理性",
+          "结尾可信度"
+        ],
+        "template": {
+          "ability": "根据前四步剧情生成合理下一步，而不是突兀转折。",
+          "input": "四个连续事件：危险开场、光接触证据、关系压力、制度阻拦。",
+          "expected_structure": "下一章必须说明上一事件如何导致当前行动。",
+          "failure_example": "忽然解决谜团，或无因无果引入新设定。"
+        }
+      },
+      "expected_state_delta": {
+        "timeline_required": true,
+        "timeline_causal_markers": [
+          "因为",
+          "所以"
+        ]
+      },
+      "rubric": {
+        "contract_rules": 50,
+        "state_delta": 50
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "external_fairytaleqa_style_character_action",
+      "task": "story_agent_capability",
+      "request": {
+        "title": "走马灯星球",
+        "premise": "星球和地球无限相似，文明整体倒退，远距离光接触会触发退变。",
+        "genre": "文明退变科幻",
+        "style": "倒序、危险、克制"
+      },
+      "required": {
+        "source_dataset": "FairytaleQA",
+        "contract_keys": [
+          "character_choice_chain"
+        ],
+        "judge_dimensions": [
+          "人物行动",
+          "情绪与结果"
+        ],
+        "template": {
+          "ability": "围绕人物、行动、感受、结果检查正文是否兑现人物弧线。",
+          "input": "人物卡、章节正文、人物选择链。",
+          "expected_structure": "能回答谁做了什么、为什么做、造成什么结果、情绪如何改变。",
+          "failure_example": "只有设定解释，没有人物主动选择和后果。"
+        }
+      },
+      "rubric": {
+        "contract_rules": 60,
+        "text_payoff": 40
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "external_tellmewhy_style_motivation",
+      "task": "story_agent_capability",
+      "request": {
+        "title": "走马灯星球",
+        "premise": "星球和地球无限相似，文明整体倒退，远距离光接触会触发退变。",
+        "genre": "文明退变科幻",
+        "style": "倒序、危险、克制"
+      },
+      "required": {
+        "source_dataset": "TellMeWhy",
+        "contract_keys": [
+          "character_choice_chain",
+          "timeline_causality"
+        ],
+        "judge_dimensions": [
+          "人物为什么行动",
+          "隐含动机"
+        ],
+        "template": {
+          "ability": "解释人物为什么行动，区分内在动机和外部触发。",
+          "input": "人物目标、冲突、当前事件、章节正文。",
+          "expected_structure": "选择链必须把目标、压力、决定、代价、后果连起来。",
+          "failure_example": "只说人物发现线索，但没说明为什么这会迫使他改变选择。"
+        }
+      },
+      "expected_state_delta": {
+        "timeline_required": true
+      },
+      "rubric": {
+        "contract_rules": 55,
+        "state_delta": 25,
+        "text_payoff": 20
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "external_glucose_style_event_causality",
+      "task": "story_agent_capability",
+      "request": {
+        "title": "走马灯星球",
+        "premise": "星球和地球无限相似，文明整体倒退，远距离光接触会触发退变。",
+        "genre": "文明退变科幻",
+        "style": "倒序、危险、克制"
+      },
+      "required": {
+        "source_dataset": "GLUCOSE",
+        "contract_keys": [
+          "timeline_causality"
+        ],
+        "judge_dimensions": [
+          "事件前因",
+          "事件后果"
+        ],
+        "template": {
+          "ability": "检查事件为什么发生、发生后导致什么。",
+          "input": "上一章事件、本章事件、时间线摘要。",
+          "expected_structure": "timeline_causality 明确 cause/effect，正文也能找到对应场景。",
+          "failure_example": "章节之间只是顺序相邻，没有可追踪因果。"
+        }
+      },
+      "expected_state_delta": {
+        "timeline_required": true,
+        "timeline_causal_markers": [
+          "因为",
+          "所以"
+        ]
+      },
+      "rubric": {
+        "contract_rules": 50,
+        "state_delta": 50
+      },
+      "pass_threshold": 80
+    }
+  ]
+}

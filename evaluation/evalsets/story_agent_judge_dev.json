@@ -1,0 +1,152 @@
+{
+  "cases": [
+    {
+      "id": "judge_positive_character_choice_payoff",
+      "task": "story_agent_capability",
+      "request": {
+        "title": "走马灯星球",
+        "premise": "星球和地球无限相似，文明整体倒退，远距离光接触会触发退变。",
+        "genre": "文明退变科幻",
+        "style": "倒序、危险、克制"
+      },
+      "required": {
+        "contract_keys": [
+          "character_choice_chain",
+          "plot_thread_progression",
+          "timeline_causality"
+        ],
+        "choice_required_fields": [
+          "goal",
+          "pressure",
+          "decision",
+          "cost",
+          "consequence"
+        ],
+        "text_must_include": [
+          "代价"
+        ],
+        "judge_dimensions": [
+          "人物选择可信度",
+          "正文兑现度"
+        ],
+        "template": {
+          "ability": "Judge 正例稳定性",
+          "input": "结构链完整且正文写出选择与代价的章节。",
+          "expected_structure": "Judge 必须引用正文证据，而不是只复述字段名。",
+          "failure_example": "没有 evidence 却给高分。"
+        }
+      },
+      "expected_state_delta": {
+        "plot_thread_status": {
+          "PT-001": "developed"
+        },
+        "timeline_required": true,
+        "timeline_causal_markers": [
+          "因为",
+          "所以"
+        ]
+      },
+      "rubric": {
+        "contract_rules": 35,
+        "state_delta": 35,
+        "text_payoff": 30
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "judge_missing_evidence_must_fail",
+      "task": "story_agent_capability",
+      "request": {
+        "title": "走马灯星球",
+        "premise": "星球和地球无限相似，文明整体倒退，远距离光接触会触发退变。",
+        "genre": "文明退变科幻",
+        "style": "倒序、危险、克制"
+      },
+      "required": {
+        "contract_keys": [
+          "character_choice_chain"
+        ],
+        "judge_dimensions": [
+          "人物选择可信度"
+        ],
+        "template": {
+          "ability": "Judge 证据约束",
+          "input": "高分 Judge 结果必须带 evidence。",
+          "expected_structure": "score >= 80 且 evidence 为空时评测失败。",
+          "failure_example": "给 95 分但 evidence 是空字符串。"
+        }
+      },
+      "rubric": {
+        "contract_rules": 50,
+        "text_payoff": 50
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "judge_schema_missing_field_must_fail",
+      "task": "story_agent_capability",
+      "request": {
+        "title": "走马灯星球",
+        "premise": "星球和地球无限相似，文明整体倒退，远距离光接触会触发退变。",
+        "genre": "文明退变科幻",
+        "style": "倒序、危险、克制"
+      },
+      "required": {
+        "contract_keys": [
+          "timeline_causality"
+        ],
+        "judge_dimensions": [
+          "因果自然度"
+        ],
+        "template": {
+          "ability": "Judge schema 严格性",
+          "input": "Judge 输出缺字段时不允许默默通过。",
+          "expected_structure": "dimension、score、evidence、failure_reason、revision_advice 缺一不可。",
+          "failure_example": "缺 failure_reason 或 revision_advice。"
+        }
+      },
+      "expected_state_delta": {
+        "timeline_required": true
+      },
+      "rubric": {
+        "contract_rules": 50,
+        "state_delta": 50
+      },
+      "pass_threshold": 80
+    },
+    {
+      "id": "judge_text_not_payoff_structure",
+      "task": "story_agent_capability",
+      "request": {
+        "title": "走马灯星球",
+        "premise": "星球和地球无限相似，文明整体倒退，远距离光接触会触发退变。",
+        "genre": "文明退变科幻",
+        "style": "倒序、危险、克制"
+      },
+      "required": {
+        "contract_keys": [
+          "character_choice_chain",
+          "plot_thread_progression"
+        ],
+        "text_must_include": [
+          "主动接受",
+          "代价"
+        ],
+        "judge_dimensions": [
+          "正文兑现度"
+        ],
+        "template": {
+          "ability": "结构与正文一致性",
+          "input": "结构里说人物承担代价，正文必须出现具体代价场景。",
+          "expected_structure": "规则层先拦截正文未兑现，Judge 只能补充软质量意见。",
+          "failure_example": "JSON 写承担代价，正文只写景物和设定说明。"
+        }
+      },
+      "rubric": {
+        "contract_rules": 40,
+        "text_payoff": 60
+      },
+      "pass_threshold": 80
+    }
+  ]
+}

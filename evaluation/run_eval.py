@@ -17,7 +17,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--workflow",
         choices=["baseline", "llm"],
         default="baseline",
-        help="被测 workflow：baseline 为确定性流程，llm 为大模型写作流程。",
+        help="被测 workflow：baseline 为确定性对照，llm 为大模型写作流程。",
     )
     parser.add_argument(
         "--judge",
@@ -27,7 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--case-id",
-        help="只运行指定 case，便于调试真实 LLM/Judge 链路。",
+        help="只运行指定 case，便于调试真实 LLM/Judge 慢速链路。",
     )
     return parser
 
@@ -45,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
         judge=judge,
     ).evaluate_all(cases, Path(args.out_dir))
     passed = sum(1 for report in reports if report.passed)
-    print(f"Story quality eval: {passed}/{len(reports)} cases passed.")
+    print(f"小说质量评测：{passed}/{len(reports)} 个 case 通过。")
     return 0 if passed == len(reports) else 1
 
 
