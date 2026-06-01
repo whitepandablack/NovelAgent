@@ -99,19 +99,24 @@ class LLMNovelWorkflow:
             result.get("story_bible", {}), request
         )
         project.characters = [
-            self._character_from_result(item) for item in result.get("characters", [])
+            self._character_from_result(item)
+            for item in self._dict_items(result.get("characters", []))
         ]
         project.volume_outline = [
-            self._outline_from_result(item) for item in result.get("volume_outline", [])
+            self._outline_from_result(item)
+            for item in self._dict_items(result.get("volume_outline", []))
         ]
         project.chapter_outlines = [
-            self._outline_from_result(item) for item in result.get("chapter_outlines", [])
+            self._outline_from_result(item)
+            for item in self._dict_items(result.get("chapter_outlines", []))
         ]
         project.world_rules = [
-            self._world_rule_from_result(item) for item in result.get("world_rules", [])
+            self._world_rule_from_result(item)
+            for item in self._dict_items(result.get("world_rules", []))
         ]
         project.plot_threads = [
-            self._plot_thread_from_result(item) for item in result.get("plot_threads", [])
+            self._plot_thread_from_result(item)
+            for item in self._dict_items(result.get("plot_threads", []))
         ]
         first = result.get("first_chapter", {})
         chapter = ChapterDraft(
@@ -347,6 +352,11 @@ class LLMNovelWorkflow:
             related_chapters=list(data.get("related_chapters", [])),
             payoff=str(data.get("payoff", "")),
         )
+
+    def _dict_items(self, value: Any) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            return []
+        return [item for item in value if isinstance(item, dict)]
 
     def _next_undrafted_plan(self, project: NovelProject) -> ChapterPlan:
         drafted = {chapter.number for chapter in project.chapters}

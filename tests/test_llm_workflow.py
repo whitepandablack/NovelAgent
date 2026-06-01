@@ -244,6 +244,42 @@ class LooseProgressionLLMClient:
         }
 
 
+class MalformedSeedMetadataLLMClient(FakeLLMClient):
+    def generate_json(self, *, system_prompt, user_payload):
+        result = super().generate_json(system_prompt=system_prompt, user_payload=user_payload)
+        if user_payload["task"] == "seed_project":
+            result["characters"].insert(0, "not a character object")
+            result["volume_outline"].insert(0, "not an outline object")
+            result["chapter_outlines"].insert(0, "not a chapter outline object")
+            result["world_rules"].insert(0, "not a world rule object")
+            result["plot_threads"].insert(0, "not a plot thread object")
+        return result
+
+
+def _test_llm_seed_project_ignores_malformed_metadata_items(self):
+    with tempfile.TemporaryDirectory() as tmp:
+        project = LLMNovelWorkflow(MalformedSeedMetadataLLMClient()).run_seed_project(
+            NovelRequest(
+                title="external smoke",
+                premise="external prompt may make the model return loose list items",
+                genre="test",
+                style="test",
+            ),
+            Path(tmp),
+        )
+
+        self.assertEqual(len(project.characters), 1)
+        self.assertEqual(len(project.volume_outline), 1)
+        self.assertEqual(len(project.chapter_outlines), 1)
+        self.assertEqual(len(project.world_rules), 1)
+        self.assertEqual(len(project.plot_threads), 1)
+
+
+LLMNovelWorkflowTests.test_llm_seed_project_ignores_malformed_metadata_items = (
+    _test_llm_seed_project_ignores_malformed_metadata_items
+)
+
+
 def _test_llm_workflow_ignores_malformed_contract_items(self):
     with tempfile.TemporaryDirectory() as tmp:
         project = NovelWorkflow().run_seed_project(
